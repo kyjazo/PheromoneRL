@@ -1,13 +1,16 @@
 from mesa import Agent
 import mesa
 import numpy as np
+
+import model
 class Animal(Agent):
     def __init__(self, model):
         super().__init__(model)
-
+        self.steps = 0
+        self.sheep_eaten = 0
 
     def move(self):
-
+        self.steps += 1
         possible_steps = self.model.grid.get_neighborhood(
             self.pos,
             moore=True,
@@ -63,7 +66,7 @@ class Wolf(Animal):
     """
     Classe per i lupi che eredita da Animal.
     """
-    def __init__(self, model,):
+    def __init__(self, model):
         super().__init__(model)
         self.q_table = {}  # Dizionario per memorizzare la Q-table
         self.learning_rate = 0.1  # Tasso di apprendimento
@@ -71,6 +74,8 @@ class Wolf(Animal):
         self.epsilon = 1.0  # Probabilità di esplorazione (epsilon-greedy)
         self.epsilon_decay = 0.995  # Decadimento di epsilon
         self.epsilon_min = 0.01  # Valore minimo di epsilon
+
+
 
     def get_state(self):
         x, y = self.pos
@@ -144,8 +149,18 @@ class Wolf(Animal):
         if sheep:
             sheep_to_eat = self.random.choice(sheep)
             sheep_to_eat.alive = False
+            self.sheep_eaten += 1
             self.model.grid.remove_agent(sheep_to_eat)
             self.model.agents.remove(sheep_to_eat)
+
+
+    def get_sheep_eaten(self):
+        return self.sheep_eaten
+    def avg_step_per_sheep(self):
+        if self.sheep_eaten > 0:
+            return self.steps/self.sheep_eaten
+        else:
+            return 0
 
 class Sheep(Animal):
 
