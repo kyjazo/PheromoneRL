@@ -1,69 +1,55 @@
 import mesa
 import pandas as pd
+import matplotlib.pyplot as plt
 from model import WolfSheepModel
 
 if __name__ == "__main__":
-    params = {"width": 20, "height": 20, "initial_wolves": 5, "initial_sheep": 20}
+    params = {"width": 100, "height": 100, "initial_wolves": 20, "initial_sheep": 100}
 
-    # Esegui la simulazione batch
+
     result = mesa.batch_run(
         WolfSheepModel,
-        data_collection_period=1,
-        parameters=params,
+        data_collection_period=10,
+        parameters={},
         iterations=1000,
-        display_progress=True
+        display_progress=True,
+        number_processes=None,
+        max_steps=100
     )
 
-    # Converti i risultati in un DataFrame di pandas
+
     df = pd.DataFrame(result)
 
-    # Stampa le prime righe del DataFrame per avere un'anteprima dei dati
-    print("Anteprima dei dati raccolti:")
-    print(df.head())
 
-    # Stampa alcune statistiche riassuntive
-    print("\nStatistiche riassuntive:")
-    print(df.describe())
+    #df.to_csv("simulation_results.csv", index=False)
+    #print("\nDati salvati in 'simulation_results.csv'")
 
-    # Se vuoi salvare i dati in un file CSV per un'analisi successiva
-    df.to_csv("simulation_results.csv", index=False)
-    print("\nDati salvati in 'simulation_results.csv'")
+    # Calcolare la media dei dati per ogni iterazione
+    if "Sheep_eaten" in df.columns and "Avg_step_per_sheep" in df.columns:
+        df_mean = df.groupby("iteration").mean()
 
+        plt.figure(figsize=(12, 5))
 
+        # Grafico per Sheep Eaten (media sulle iterazioni)
+        plt.subplot(1, 2, 1)
+        plt.plot(df_mean.index, df_mean["Sheep_eaten"], label="Average Sheep Eaten", color='red')
+        plt.xlabel("Iteration")
+        plt.ylabel("Number of Sheep Eaten")
+        plt.title("Average Sheep Eaten Over Time")
+        plt.legend()
 
+        # Grafico per Avg Step per Sheep (media sulle iterazioni)
+        plt.subplot(1, 2, 2)
+        plt.plot(df_mean.index, df_mean["Avg_step_per_sheep"], label="Avg Steps per Sheep", color='blue')
+        plt.xlabel("Iteration")
+        plt.ylabel("Average Steps per Sheep")
+        plt.title("Average Steps per Sheep Over Time")
+        plt.legend()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("Dati agent_reporters mancanti nella simulazione.")
 
 
 

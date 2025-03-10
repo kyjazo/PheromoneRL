@@ -1,11 +1,14 @@
 import solara
-from mesa.visualization import SolaraViz, make_space_component
+import numpy as np
+import plotly.graph_objects as go
+from mesa.visualization import SolaraViz, make_space_component, Slider
 from model import WolfSheepModel
 from agents import Wolf, Sheep
-import numpy as np
 
 def agent_portrayal(agent):
-    portrayal = {}
+    portrayal = {
+        "size": 50,
+    }
     if isinstance(agent, Wolf):
         portrayal["color"] = "red"
         portrayal["shape"] = "circle"
@@ -14,24 +17,30 @@ def agent_portrayal(agent):
         portrayal["color"] = "green"
         portrayal["shape"] = "circle"
         portrayal["r"] = 0.5
+
     return portrayal
 
+
 model_params = {
-    "width": 20,
-    "height": 20,
-    "initial_wolves": 5,
-    "initial_sheep": 20,
+    "height": Slider("Height", 20, 5, 100, 5, dtype=int),
+    "width": Slider("Width", 20, 5, 100, 5, dtype=int),
+    "initial_sheep": Slider("Initial Sheep Population", 5, 1, 10, 1, dtype=int),
+    "initial_wolves": Slider("Initial Wolf Population", 20, 1, 100, 1, dtype=int),
+    "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.1, dtype=float),
+    "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
 }
 
-myModel = WolfSheepModel(**model_params)
+myModel = WolfSheepModel()
 
-
-SpaceGraph = make_space_component(agent_portrayal)
+# Aggiungi propertylayer_portrayal al make_space_component
+SpaceGraph = make_space_component(
+    agent_portrayal=agent_portrayal,
+)
 
 viz = SolaraViz(
     model=myModel,
     components=[SpaceGraph],
-    #model_params=model_params,
+    model_params=model_params,
     name="WolfSheepModel"
 )
 

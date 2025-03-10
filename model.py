@@ -12,13 +12,14 @@ with open("config.json", "r") as f:
 
 
 class WolfSheepModel(Model):
-    """
-    Modello per la simulazione di lupi e pecore con feromoni.
-    """
-    def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
-                 initial_sheep=config["num_sheep"], seed=None):
-        super().__init__(seed=seed)
 
+    def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
+                 initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
+                 pheromone_added=config["pheromone_added"], seed=None):
+
+        super().__init__(seed=seed)
+        self.pheromone_evaporation = pheromone_evaporation
+        self.pheromone_added = pheromone_added
         self.grid = MultiGrid(width, height, torus=True)
         self.running = True
         self.wolf_pheromone_layer = PropertyLayer("wolf_pheromone", width, height, 0.0)
@@ -70,14 +71,14 @@ class WolfSheepModel(Model):
         for x in range(self.grid.width):
             for y in range(self.grid.height):
                 current_pheromone = self.wolf_pheromone_layer.data[x, y]
-                new_pheromone = max(0.0, current_pheromone - config["pheromone_evaporation"])  # Evaporazione
+                new_pheromone = max(0.0, current_pheromone - self.pheromone_evaporation)  # Evaporazione
                 self.wolf_pheromone_layer.set_cell((x, y), new_pheromone)
 
         for agent in self.agents:
             if isinstance(agent, Wolf) and agent.pos is not None:
                 (x, y) = agent.pos
                 current_pheromone = self.wolf_pheromone_layer.data[x, y]
-                new_pheromone = current_pheromone + config["pheromone_added"]
+                new_pheromone = current_pheromone + self.pheromone_added
                 self.wolf_pheromone_layer.set_cell((x, y), new_pheromone)
 
     def update_sheep_pheromone(self):
@@ -85,14 +86,14 @@ class WolfSheepModel(Model):
         for x in range(self.grid.width):
             for y in range(self.grid.height):
                 current_pheromone = self.sheep_pheromone_layer.data[x, y]
-                new_pheromone = max(0.0, current_pheromone - config["pheromone_evaporation"])  # Evaporazione
+                new_pheromone = max(0.0, current_pheromone - self.pheromone_evaporation)  # Evaporazione
                 self.sheep_pheromone_layer.set_cell((x, y), new_pheromone)
 
         for agent in self.agents:
             if isinstance(agent, Sheep) and agent.pos is not None:
                 (x, y) = agent.pos
                 current_pheromone = self.sheep_pheromone_layer.data[x, y]
-                new_pheromone = current_pheromone + config["pheromone_added"]
+                new_pheromone = current_pheromone + self.pheromone_added
                 self.sheep_pheromone_layer.set_cell((x, y), new_pheromone)
 
     def count_wolves(self):
