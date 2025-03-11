@@ -3,20 +3,41 @@ import numpy as np
 import plotly.graph_objects as go
 from mesa.visualization import SolaraViz, make_space_component, Slider
 from model import WolfSheepModel
-from agents import Wolf, Sheep
+from agents import Wolf, Sheep, Pheromone
+
 
 def agent_portrayal(agent):
     portrayal = {
-        "size": 50,
+        "size": 25,
     }
+
     if isinstance(agent, Wolf):
-        portrayal["color"] = "red"
-        portrayal["shape"] = "circle"
-        portrayal["r"] = 0.5
+        portrayal["color"] = "darkred"
+        portrayal["marker"] = "o"
+        portrayal["zorder"] = 2
+
     elif isinstance(agent, Sheep):
         portrayal["color"] = "green"
-        portrayal["shape"] = "circle"
-        portrayal["r"] = 0.5
+        portrayal["marker"] = "o"
+        portrayal["zorder"] = 2
+
+    elif isinstance(agent, Pheromone):
+
+       if agent.wolf_concentration == 0 and agent.sheep_concentration == 0:
+           portrayal["color"] = "white"
+           portrayal["marker"] = "s"
+           portrayal["size"] = 75
+       else:
+           max_pheromone = max(agent.wolf_concentration, agent.sheep_concentration)
+           red_intensity = (agent.wolf_concentration / max_pheromone) if max_pheromone != 0 else 0
+           green_intensity = (agent.sheep_concentration / max_pheromone) if max_pheromone != 0 else 0
+
+
+           red_hex = int(red_intensity * 255)
+           green_hex = int(green_intensity * 255)
+           portrayal["color"] = f"#{red_hex:02x}{green_hex:02x}00"
+           portrayal["marker"] = "s"
+           portrayal["size"] = 75
 
     return portrayal
 
@@ -24,9 +45,9 @@ def agent_portrayal(agent):
 model_params = {
     "height": Slider("Height", 20, 5, 100, 5, dtype=int),
     "width": Slider("Width", 20, 5, 100, 5, dtype=int),
-    "initial_sheep": Slider("Initial Sheep Population", 5, 1, 10, 1, dtype=int),
-    "initial_wolves": Slider("Initial Wolf Population", 20, 1, 100, 1, dtype=int),
-    "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.1, dtype=float),
+    "initial_sheep": Slider("Initial Sheep Population", 20, 1, 100, 1, dtype=int),
+    "initial_wolves": Slider("Initial Wolf Population", 5, 1, 20, 1, dtype=int),
+    "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
 }
 

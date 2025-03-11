@@ -11,7 +11,7 @@ if __name__ == "__main__":
         WolfSheepModel,
         data_collection_period=10,
         parameters={},
-        iterations=1000,
+        iterations=100,
         display_progress=True,
         number_processes=None,
         max_steps=100
