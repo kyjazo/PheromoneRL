@@ -1,9 +1,7 @@
 import solara
-import numpy as np
-import plotly.graph_objects as go
 from mesa.visualization import SolaraViz, make_space_component, Slider
 from model import WolfSheepModel
-from agents import Wolf, Sheep, Pheromone
+from agents import Wolf, Sheep, Pheromones
 
 
 def agent_portrayal(agent):
@@ -21,16 +19,16 @@ def agent_portrayal(agent):
         portrayal["marker"] = "o"
         portrayal["zorder"] = 2
 
-    elif isinstance(agent, Pheromone):
+    elif isinstance(agent, Pheromones):
 
-       if agent.wolf_concentration == 0 and agent.sheep_concentration == 0:
+       if agent.pheromone.wolf_concentration == 0 and agent.pheromone.sheep_concentration == 0:
            portrayal["color"] = "white"
            portrayal["marker"] = "s"
            portrayal["size"] = 75
        else:
-           max_pheromone = max(agent.wolf_concentration, agent.sheep_concentration)
-           red_intensity = (agent.wolf_concentration / max_pheromone) if max_pheromone != 0 else 0
-           green_intensity = (agent.sheep_concentration / max_pheromone) if max_pheromone != 0 else 0
+           max_pheromone = max(agent.pheromone.wolf_concentration, agent.pheromone.sheep_concentration)
+           red_intensity = (agent.pheromone.wolf_concentration / max_pheromone) if max_pheromone != 0 else 0
+           green_intensity = (agent.pheromone.sheep_concentration / max_pheromone) if max_pheromone != 0 else 0
 
 
            red_hex = int(red_intensity * 255)
@@ -43,12 +41,20 @@ def agent_portrayal(agent):
 
 
 model_params = {
+    "render_pheromone": {
+        "type": "Select",
+        "value": False,
+        "values": [True, False],
+        "label": "Render Pheromone?",
+    },
+
     "height": Slider("Height", 20, 5, 100, 5, dtype=int),
     "width": Slider("Width", 20, 5, 100, 5, dtype=int),
     "initial_sheep": Slider("Initial Sheep Population", 20, 1, 100, 1, dtype=int),
     "initial_wolves": Slider("Initial Wolf Population", 5, 1, 20, 1, dtype=int),
     "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
+
 }
 
 myModel = WolfSheepModel()
