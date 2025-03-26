@@ -1,28 +1,24 @@
 from modelpz import WolfSheepEnv
-import numpy as np
+from pettingzoo.test import parallel_api_test
 
 env = WolfSheepEnv()
+parallel_api_test(env, num_cycles=1000)
 
-observations = env.reset()
-print("Initial Observations:", observations)
 
-num_steps = 10
 
-for step in range(num_steps):
-    print(f"\nStep {step + 1}:")
 
-    actions = {agent_id: env.action_space(agent_id).sample() for agent_id in env.agents}
 
-    observations, rewards, dones, infos = env.step(actions)
 
-    print("Actions:", actions)
-    print("Observations:", observations)
-    print("Rewards:", rewards)
-    print("Dones:", dones)
-    print("Infos:", infos)
 
-    if all(dones.values()):
-        print("\nSimulation finished early: all agents are done.")
-        break
 
-env.close()
+
+#env = WolfSheepEnv()
+#observations, infos = env.reset()
+#
+#while True:
+#    actions = {agent: env.action_space.sample() for agent in env.agents}
+#    observations, rewards, dones, infos = env.step(actions)
+#    env.render()
+#
+#    if all(dones.values()):
+#        break

@@ -3,55 +3,78 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from model import WolfSheepModel
 
-if __name__ == "__main__":
-    params = {"width": 100, "height": 100, "initial_wolves": 20, "initial_sheep": 100}
+def analyze_simulation(df):
+    print("\n=== Metriche di Apprendimento ===")
+    print(f"Stati esplorati: {df['Q_Size'].max()}")
+    print(f"Exploration rate finale: {df['Exploration'].iloc[-1]:.2f}")
+    print(f"Valore Q medio finale: {df['Avg_Q'].iloc[-1]:.2f}")
 
+
+
+
+if __name__ == "__main__":
+    params = {"width": 50, "height": 50, "initial_wolves": 5, "initial_sheep": 50, "q_table_file": "q_table.json"}
 
     result = mesa.batch_run(
         WolfSheepModel,
-        data_collection_period=10,
-        parameters={},
+        data_collection_period=1,
+        parameters=params,
         iterations=100,
         display_progress=True,
-        number_processes=None,
+        number_processes=1,
         max_steps=100
     )
 
-
     df = pd.DataFrame(result)
 
+    if "Steps" in df.columns:
 
-    #df.to_csv("simulation_results.csv", index=False)
-    #print("\nDati salvati in 'simulation_results.csv'")
-
-    # Calcolare la media dei dati per ogni iterazione
-    if "Sheep_eaten" in df.columns and "Avg_step_per_sheep" in df.columns:
-        df_mean = df.groupby("iteration").mean()
-
-        plt.figure(figsize=(12, 5))
-
-        # Grafico per Sheep Eaten (media sulle iterazioni)
-        plt.subplot(1, 2, 1)
-        plt.plot(df_mean.index, df_mean["Sheep_eaten"], label="Average Sheep Eaten", color='red')
-        plt.xlabel("Iteration")
-        plt.ylabel("Number of Sheep Eaten")
-        plt.title("Average Sheep Eaten Over Time")
-        plt.legend()
-
-        # Grafico per Avg Step per Sheep (media sulle iterazioni)
-        plt.subplot(1, 2, 2)
-        plt.plot(df_mean.index, df_mean["Avg_step_per_sheep"], label="Avg Steps per Sheep", color='blue')
-        plt.xlabel("Iteration")
-        plt.ylabel("Average Steps per Sheep")
-        plt.title("Average Steps per Sheep Over Time")
-        plt.legend()
-
-        plt.tight_layout()
-        plt.show()
+        max_steps_per_iteration = df.groupby("iteration")["Steps"].max()
+        print("\nTotale steps per iterazione:")
+        print(max_steps_per_iteration)
+        print("\nMedia sheep eaten per iterazione:")
+        print(df.groupby("iteration")["Sheep_eaten"].mean())
     else:
-        print("Dati agent_reporters mancanti nella simulazione.")
+        print("Colonna 'Steps' non trovata nei dati della simulazione.")
+    analyze_simulation(df)
 
 
+
+
+
+#
+#
+#    #df.to_csv("simulation_results.csv", index=False)
+#    #print("\nDati salvati in 'simulation_results.csv'")
+#
+#    # Calcolare la media dei dati per ogni iterazione
+#    if "Sheep_eaten" in df.columns and "Avg_step_per_sheep" in df.columns:
+#        df_mean = df.groupby("iteration").mean()
+#
+#        plt.figure(figsize=(12, 5))
+#
+#        # Grafico per Sheep Eaten (media sulle iterazioni)
+#        plt.subplot(1, 2, 1)
+#        plt.plot(df_mean.index, df_mean["Sheep_eaten"], label="Average Sheep Eaten", color='red')
+#        plt.xlabel("Iteration")
+#        plt.ylabel("Number of Sheep Eaten")
+#        plt.title("Average Sheep Eaten Over Time")
+#        plt.legend()
+#
+#        # Grafico per Avg Step per Sheep (media sulle iterazioni)
+#        plt.subplot(1, 2, 2)
+#        plt.plot(df_mean.index, df_mean["Avg_step_per_sheep"], label="Avg Steps per Sheep", color='blue')
+#        plt.xlabel("Iteration")
+#        plt.ylabel("Average Steps per Sheep")
+#        plt.title("Average Steps per Sheep Over Time")
+#        plt.legend()
+#
+#        plt.tight_layout()
+#        plt.show()
+#    else:
+#        print("Dati agent_reporters mancanti nella simulazione.")
+#
+#
 
 #import time
 #import psutil
