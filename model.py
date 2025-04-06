@@ -15,8 +15,11 @@ class WolfSheepModel(Model):
 
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
-                 pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", seed=None):
+                 pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=100,
+                 diffusion_rate=0.1, seed=None):
          super().__init__(seed=seed)
+         self.diffusion_rate = diffusion_rate
+         self.max_steps = max_steps
          self.q_table_file = q_table_file
          self.render_pheromone = render_pheromone
          self.wolf_pheromone_layer = PropertyLayer("wolf_pheromone_layer", height=height, width=width,
@@ -31,18 +34,14 @@ class WolfSheepModel(Model):
          self.datacollector = DataCollector(
              model_reporters={
                  "Steps": self.get_steps,
-                 "Exploration": lambda m: np.mean(
-                     [w.q_learning.epsilon for w in m.agents if isinstance(w, Wolf)] or [0]),
-                 "Avg_Q": lambda m: np.mean(
-                     [np.mean([q_val for action_vals in w.q_learning.q_table.values()
-                               for q_val in action_vals.values()])
-                      if hasattr(w, 'q_learning') and w.q_learning.q_table else 0
-                      for w in m.agents if isinstance(w, Wolf)] or [0])
+                 "Avg_Reward": lambda m: float(np.mean(
+                     [float(w.last_reward) for w in m.agents
+                      if isinstance(w, Wolf) and hasattr(w, 'last_reward')] or [0.0]))
              },
              agent_reporters={
-                 "Sheep_eaten": Wolf.get_sheep_eaten,
-                 "Avg_step_per_sheep": Wolf.avg_step_per_sheep,
-                 "Q_Size": lambda a: len(a.q_learning.q_table) if hasattr(a, 'q_learning') else None
+                 "Sheep_eaten": lambda a: int(a.sheep_eaten) if hasattr(a, 'sheep_eaten') else None,
+                  "Reward": lambda a: float(np.mean(a.rewards))  # Usa la media delle reward
+                  if hasattr(a, 'rewards') and a.rewards else None
              }
          )
 
@@ -83,15 +82,50 @@ class WolfSheepModel(Model):
             temp_q_learning = QLearning(actions=[0, 1, 2])
             temp_q_learning.q_table = q_tables
             temp_q_learning.save_q_table(self.q_table_file)
+
+    def diffuse_pheromones(self):
+
+        new_wolf = self.wolf_pheromone_layer.data.copy()
+        new_sheep = self.sheep_pheromone_layer.data.copy()
+
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+        for x in range(self.grid.width):
+            for y in range(self.grid.height):
+                current_wolf = self.wolf_pheromone_layer.data[x, y]
+                current_sheep = self.sheep_pheromone_layer.data[x, y]
+
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+
+                    nx = nx % self.grid.width
+                    ny = ny % self.grid.height
+
+                    new_wolf[nx, ny] += current_wolf * self.diffusion_rate
+                    new_sheep[nx, ny] += current_sheep * self.diffusion_rate
+                    #bilanciamento dei feromoni(manteniamo la stessa massa)
+                    new_wolf[x, y] -= current_wolf * self.diffusion_rate
+                    new_sheep[x, y] -= current_sheep * self.diffusion_rate
+
+        self.wolf_pheromone_layer.data = new_wolf
+        self.sheep_pheromone_layer.data = new_sheep
+
     def step(self):
-        if self.count_agents(Sheep) == 0:
+        if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
             self.save_q_tables()
             self.datacollector.collect(self)
             self.running = False
         else:
             self.agents.shuffle_do("step")
             self.datacollector.collect(self)
-            self.evaporate_pheromones()
+
+            if self.render_pheromone:
+                for agent in self.agents:
+                    if isinstance(agent, Pheromones):
+                        agent.apply_diffusion()
+            else:
+                self.evaporate_pheromones()
+                self.diffuse_pheromones()
 
     def __del__(self):
         self.save_q_tables()
@@ -109,6 +143,8 @@ class WolfSheepModel(Model):
                     x, y] - self.pheromone_evaporation))
                 self.sheep_pheromone_layer.set_cell((x, y), max(0, self.sheep_pheromone_layer.data[
                     x, y] - self.pheromone_evaporation))
+
+
 
 
 
