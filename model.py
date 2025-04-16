@@ -16,8 +16,14 @@ class WolfSheepModel(Model):
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
                  pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=100,
-                 diffusion_rate=0.1, seed=None):
+                 diffusion_rate=0.1, respawn=True, learning=True, q_learning_params=None, seed=None):
          super().__init__(seed=seed)
+
+
+
+         self.q_learning_params = q_learning_params
+         self.respawn = respawn
+         self.learning = learning
          self.diffusion_rate = diffusion_rate
          self.max_steps = max_steps
          self.q_table_file = q_table_file
@@ -41,7 +47,12 @@ class WolfSheepModel(Model):
              agent_reporters={
                  "Sheep_eaten": lambda a: int(a.sheep_eaten) if hasattr(a, 'sheep_eaten') else None,
                   "Reward": lambda a: float(np.mean(a.rewards))  # Usa la media delle reward
-                  if hasattr(a, 'rewards') and a.rewards else None
+                  if hasattr(a, 'rewards') and a.rewards else None,
+                 "Action_0": lambda a: a.action_counts[0] if hasattr(a, "action_counts") else None,
+                 "Action_1": lambda a: a.action_counts[1] if hasattr(a, "action_counts") else None,
+                 "Action_2": lambda a: a.action_counts[2] if hasattr(a, "action_counts") else None,
+                 "Action_3": lambda a: a.action_counts[3] if hasattr(a, "action_counts") else None,
+
              }
          )
 
@@ -62,7 +73,7 @@ class WolfSheepModel(Model):
             self.grid.place_agent(agent, tuple(pos))
 
     def save_q_tables(self):
-        if not hasattr(self, 'q_table_file') or not self.q_table_file:
+        if not self.learning or not hasattr(self, 'q_table_file') or not self.q_table_file:
             return
 
         q_tables = {}
@@ -111,11 +122,13 @@ class WolfSheepModel(Model):
         self.sheep_pheromone_layer.data = new_sheep
 
     def step(self):
+
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
             self.save_q_tables()
             self.datacollector.collect(self)
             self.running = False
         else:
+
             self.agents.shuffle_do("step")
             self.datacollector.collect(self)
 

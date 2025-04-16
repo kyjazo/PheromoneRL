@@ -52,16 +52,14 @@ class QLearning:
 
     def get_state(self, wolf, pheromones, sheep_present):
 
-        if not pheromones:
-            return (0, 0, sheep_present)
+        differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
 
-        sheep_vals = [ph.sheep_concentration for ph in pheromones]
-        wolf_vals = [ph.wolf_concentration for ph in pheromones]
+        max_index = int(np.argmax(differences))  # sarà da 0 a 7
 
-        sheep_level = min(2, int(np.mean(sheep_vals) * 3))
-        wolf_level = min(2, int(np.mean(wolf_vals) * 3))
+        # Presenza pecora: 1 se True, 0 altrimenti
+        sheep_presence = int(sheep_present)
 
-        return (sheep_level, wolf_level, sheep_present)
+        return (max_index, sheep_presence)
 
     def choose_action(self, state):
 
@@ -163,30 +161,39 @@ class Animal(Agent):
 
 class Wolf(Animal):
     def __init__(self, model, q_table_file="q_table.json"):
+            super().__init__(model)
+            self.use_learning = self.model.learning
 
-        super().__init__(model)
+            self.action_counts = {0: 0, 1: 0, 2: 0, 3: 0}
 
-        self.q_learning = QLearning(
-            actions=[0, 1, 2, 3],
-            alpha=0.2,
-            gamma=0.95,
-            epsilon=0.3,
-            epsilon_decay=0.998,
-            min_epsilon=0.05,
-            q_table_file=q_table_file
-        )
-        self.sheep_eaten = 0
+            if self.use_learning:
+                if self.model.q_learning_params != None:
+                    #print(self.model.q_learning_params)
+                    self.q_learning = QLearning(self.model.q_learning_params)
 
-        self.steps_since_last_capture = 0
-        self.fixed_reward = 10
-        self.step_penalty = -0.05
-        self.distance_gain = 0.5
-        self.stayed = False
-        self.rewards = []
-        self.eaten = False
+                else:
+                    #print("prova")
+                    self.q_learning = QLearning(
+                        actions=[0, 1, 2, 3],
+                        alpha=0.1,
+                        gamma=0.99,
+                        epsilon=0.3,
+                        epsilon_decay=0.895,
+                        min_epsilon=0.00,
+                        q_table_file=q_table_file
+                    )
+                self.fixed_reward = 10
+                self.step_penalty = -0.05
+                self.distance_gain = 0.5
+                self.rewards = []
+
+            self.sheep_eaten = 0
+            self.steps_since_last_capture = 0
+            self.stayed = False
+            self.eaten = False
 
     def __del__(self):
-        if hasattr(self, 'q_table_file') and self.q_table_file:
+        if self.use_learning and hasattr(self, 'q_table_file') and self.q_table_file:
             self.q_learning.save_q_table(self.q_table_file)
 
     def calculate_reward(self):
@@ -198,9 +205,12 @@ class Wolf(Animal):
 
     def step(self):
 
+        #print(self.q_learning.epsilon, self.model.steps)
+        self.update_pheromone()
+
         if(self.stayed):
             possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False, radius=2
+                self.pos, moore=True, include_center=False, radius=1  #per ora rimetto radius a 1 per semplicità, poi 2
             )
             self.stayed = False
         else:
@@ -221,10 +231,15 @@ class Wolf(Animal):
 
         sheep_present = any(any(isinstance(obj, Sheep) for obj in self.model.grid.get_cell_list_contents(step)) for step in possible_steps)
 
+        if self.use_learning:
+            state = self.q_learning.get_state(self, pheromones, sheep_present)
+            action = self.q_learning.choose_action(state)
 
-        state = self.q_learning.get_state(self, pheromones, sheep_present)
+            self.action_counts[action] += 1
 
-        action = self.q_learning.choose_action(state)
+
+        else:
+            action = 0
 
         if action == 0 or action == 3:
             best_steps = self.get_best_step(possible_steps, pheromones, True, action)
@@ -240,38 +255,37 @@ class Wolf(Animal):
 
 
         self.eaten = self.eat_sheep()
-        reward = self.calculate_reward()
-        if self.eaten:
-            self.steps_since_last_capture = 0
-        else:
-            self.steps_since_last_capture += 1
 
-        self.rewards.append(reward)
+        if self.use_learning:
+            reward = self.calculate_reward()
+            if self.eaten:
+                self.steps_since_last_capture = 0
+            else:
+                self.steps_since_last_capture += 1
 
-        self.update_pheromone()
+            self.rewards.append(reward)
 
-        next_possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False
-        )
-        next_pheromones = [
-            Pheromone(
-                wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
-                sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
-            ) for (x, y) in next_possible_steps
-        ] if not self.model.render_pheromone else [
-            next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if isinstance(obj, Pheromones)),
-                 Pheromone())
-            for step in next_possible_steps
-        ]
+            next_possible_steps = self.model.grid.get_neighborhood(
+                self.pos, moore=True, include_center=False
+            )
+            next_pheromones = [
+                Pheromone(
+                    wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
+                    sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
+                ) for (x, y) in next_possible_steps
+            ] if not self.model.render_pheromone else [
+                next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
+                      isinstance(obj, Pheromones)),
+                     Pheromone())
+                for step in next_possible_steps
+            ]
 
-        next_sheep_present = any(
-            any(isinstance(obj, Sheep) for obj in self.model.grid.get_cell_list_contents(step)) for step in
-            next_possible_steps)
+            next_sheep_present = any(
+                any(isinstance(obj, Sheep) for obj in self.model.grid.get_cell_list_contents(step)) for step in
+                next_possible_steps)
 
-
-        next_state = self.q_learning.get_state(self, next_pheromones, next_sheep_present)
-
-        self.q_learning.learn(state, action, reward, next_state)
+            next_state = self.q_learning.get_state(self, next_pheromones, next_sheep_present)
+            self.q_learning.learn(state, action, reward, next_state)
 
         self.steps += 1
 
@@ -281,9 +295,11 @@ class Wolf(Animal):
             sheep_to_eat = self.random.choice(sheep)
             sheep_to_eat.alive = False
             self.sheep_eaten += 1
-            sheep_to_eat.respawn()
-            #self.model.grid.remove_agent(sheep_to_eat)
-            #self.model.agents.remove(sheep_to_eat)
+            if self.model.respawn:
+                sheep_to_eat.respawn()
+            else:
+                self.model.grid.remove_agent(sheep_to_eat)
+                self.model.agents.remove(sheep_to_eat)
             return True
         return False
 

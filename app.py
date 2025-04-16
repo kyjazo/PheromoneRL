@@ -47,6 +47,18 @@ model_params = {
         "values": [True, False],
         "label": "Render Pheromone?",
     },
+    "respawn": {
+        "type": "Select",
+        "value": True,
+        "values": [True, False],
+        "label": "respawn?",
+    },
+    "learning": {
+        "type": "Select",
+        "value": True,
+        "values": [True, False],
+        "label": "learning?",
+    },
 
     "height": Slider("Height", 20, 5, 100, 5, dtype=int),
     "width": Slider("Width", 20, 5, 100, 5, dtype=int),
@@ -54,6 +66,15 @@ model_params = {
     "initial_wolves": Slider("Initial Wolf Population", 5, 1, 20, 1, dtype=int),
     "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
+
+    "q_learning_params": {
+        "alpha": 0.1,
+        "gamma": 0.99,
+        "epsilon": 0.3,
+        "epsilon_decay": 0.895,
+        "min_epsilon": 0.00,
+        "actions": [0, 1, 2, 3]
+    },
 
 }
 
