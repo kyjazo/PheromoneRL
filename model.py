@@ -1,3 +1,5 @@
+import math
+
 import mesa
 import json
 from mesa import Model
@@ -16,11 +18,10 @@ class WolfSheepModel(Model):
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
                  pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=100,
-                 diffusion_rate=0.1, respawn=True, learning=True, q_learning_params=None, seed=None):
+                 diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning_params=None, testing=False, seed=None):
          super().__init__(seed=seed)
 
-
-
+         self.testing = testing
          self.q_learning_params = q_learning_params
          self.respawn = respawn
          self.learning = learning
@@ -64,13 +65,73 @@ class WolfSheepModel(Model):
              for agent, pos in zip(pheromones, positions):
                  self.grid.place_agent(agent, tuple(pos))
 
-    def place_agents(self, agent_class, num_agents):
+    #def place_agents(self, agent_class, num_agents):
+#
+    #    agents = agent_class.create_agents(model=self, n=num_agents)
+    #    positions = np.column_stack((self.rng.integers(0, self.grid.width, size=num_agents),
+    #                                 self.rng.integers(0, self.grid.height, size=num_agents)))
+    #    for agent, pos in zip(agents, positions):
+    #        self.grid.place_agent(agent, tuple(pos))
 
+    def place_agents(self, agent_class, num_agents):
         agents = agent_class.create_agents(model=self, n=num_agents)
-        positions = np.column_stack((self.rng.integers(0, self.grid.width, size=num_agents),
-                                     self.rng.integers(0, self.grid.height, size=num_agents)))
+
+        if agent_class.__name__ == "Wolf":
+
+            center_x, center_y = self.grid.width // 2, self.grid.height // 2
+            positions = [(center_x + dx, center_y + dy)
+                         for dx in range(-2, 3) for dy in range(-2, 3)]
+            self.random.shuffle(positions)
+            positions = positions[:num_agents]
+
+        elif agent_class.__name__ == "Sheep":
+
+            positions = []
+            while len(positions) < num_agents:
+                x = self.random.randint(0, self.grid.width - 1)
+                y = self.random.choice([0, self.grid.height - 1])
+                if (x, y) not in positions:
+                    positions.append((x, y))
+                if len(positions) < num_agents:
+                    y = self.random.randint(0, self.grid.height - 1)
+                    x = self.random.choice([0, self.grid.width - 1])
+                    if (x, y) not in positions:
+                        positions.append((x, y))
+            positions = positions[:num_agents]
+
+        else:
+            # Posizionamento casuale per altri agenti
+            positions = np.column_stack((self.rng.integers(0, self.grid.width, size=num_agents),
+                                         self.rng.integers(0, self.grid.height, size=num_agents)))
+
         for agent, pos in zip(agents, positions):
             self.grid.place_agent(agent, tuple(pos))
+
+    #def get_sheep_positions_near(self, pos, radius=3):
+    #    """Restituisce le posizioni delle pecore entro un certo raggio"""
+    #    neighbors = self.grid.get_neighbors(pos, moore=True, include_center=False, radius=radius)
+    #    return [agent.pos for agent in neighbors if isinstance(agent, Sheep) and agent.alive]
+#
+    def get_closest_sheep_distance(self, pos, radius=6):
+        """Versione ottimizzata che cerca solo in un raggio specifico"""
+        neighbors = self.grid.get_neighbors(pos, moore=True, include_center=False, radius=radius)
+        sheep = [agent for agent in neighbors if isinstance(agent, Sheep) and agent.alive]
+#
+        if not sheep:
+            return radius + 1  # Restituisce un valore più grande del raggio di ricerca
+#
+        return min(self.get_distance(pos, s.pos) for s in sheep)
+
+    def get_distance(self, pos1, pos2):
+        """Calcola la distanza tra due punti sulla griglia toroidale"""
+        dx = abs(pos1[0] - pos2[0])
+        dy = abs(pos1[1] - pos2[1])
+#
+        # Considera la natura toroidale della griglia
+        dx = min(dx, self.grid.width - dx)
+        dy = min(dy, self.grid.height - dy)
+#
+        return math.sqrt(dx ** 2 + dy ** 2)
 
     def save_q_tables(self):
         if not self.learning or not hasattr(self, 'q_table_file') or not self.q_table_file:
@@ -90,7 +151,7 @@ class WolfSheepModel(Model):
                                 q_tables[state][action] = value
 
         if q_tables:
-            temp_q_learning = QLearning(actions=[0, 1, 2])
+            temp_q_learning = QLearning(actions=[0, 1, 2, 3])
             temp_q_learning.q_table = q_tables
             temp_q_learning.save_q_table(self.q_table_file)
 
@@ -99,12 +160,19 @@ class WolfSheepModel(Model):
         new_wolf = self.wolf_pheromone_layer.data.copy()
         new_sheep = self.sheep_pheromone_layer.data.copy()
 
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0),
+                      (1, 1), (1, -1), (-1, 1), (-1, -1)]
+
+        fraction_per_direction = self.diffusion_rate / len(directions)
 
         for x in range(self.grid.width):
             for y in range(self.grid.height):
                 current_wolf = self.wolf_pheromone_layer.data[x, y]
                 current_sheep = self.sheep_pheromone_layer.data[x, y]
+
+                total_diffused_wolf = 0
+                total_diffused_sheep = 0
 
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
@@ -112,11 +180,16 @@ class WolfSheepModel(Model):
                     nx = nx % self.grid.width
                     ny = ny % self.grid.height
 
-                    new_wolf[nx, ny] += current_wolf * self.diffusion_rate
-                    new_sheep[nx, ny] += current_sheep * self.diffusion_rate
-                    #bilanciamento dei feromoni(manteniamo la stessa massa)
-                    new_wolf[x, y] -= current_wolf * self.diffusion_rate
-                    new_sheep[x, y] -= current_sheep * self.diffusion_rate
+                    wolf_diffused = current_wolf * fraction_per_direction
+                    sheep_diffused = current_sheep * fraction_per_direction
+
+                    new_wolf[nx, ny] += wolf_diffused
+                    new_sheep[nx, ny] += sheep_diffused
+                    total_diffused_wolf += wolf_diffused
+                    total_diffused_sheep += sheep_diffused
+
+                new_wolf[x, y] -= total_diffused_wolf
+                new_sheep[x, y] -= total_diffused_sheep
 
         self.wolf_pheromone_layer.data = new_wolf
         self.sheep_pheromone_layer.data = new_sheep
@@ -140,6 +213,7 @@ class WolfSheepModel(Model):
                 self.evaporate_pheromones()
                 self.diffuse_pheromones()
 
+
     def __del__(self):
         self.save_q_tables()
 
@@ -147,15 +221,18 @@ class WolfSheepModel(Model):
         return self.steps
     def count_agents(self, agent_type):
         return sum(1 for agent in self.agents if isinstance(agent, agent_type))
+
     def evaporate_pheromones(self):
         if self.render_pheromone:
             return
         for x in range(self.grid.width):
             for y in range(self.grid.height):
-                self.wolf_pheromone_layer.set_cell((x, y), max(0, self.wolf_pheromone_layer.data[
-                    x, y] - self.pheromone_evaporation))
-                self.sheep_pheromone_layer.set_cell((x, y), max(0, self.sheep_pheromone_layer.data[
-                    x, y] - self.pheromone_evaporation))
+
+                current_wolf = self.wolf_pheromone_layer.data[x, y]
+                current_sheep = self.sheep_pheromone_layer.data[x, y]
+
+                self.wolf_pheromone_layer.set_cell((x, y), current_wolf * (1 - self.pheromone_evaporation))
+                self.sheep_pheromone_layer.set_cell((x, y), current_sheep * (1 - self.pheromone_evaporation))
 
 
 

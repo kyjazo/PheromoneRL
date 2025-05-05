@@ -3,6 +3,7 @@
   "grid_height": 20,
   "num_wolves": 5,
   "num_sheep": 20,
-  "pheromone_added": 0.5,
-  "pheromone_evaporation": 0.1
+  "pheromone_added": 1,
+  "pheromone_evaporation": 0.1,
+  "diffusion_rate": 0.5
 }

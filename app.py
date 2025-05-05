@@ -66,6 +66,7 @@ model_params = {
     "initial_wolves": Slider("Initial Wolf Population", 5, 1, 20, 1, dtype=int),
     "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
+    "diffusion_rate": Slider("Diffusion Rate", 0.1, 0.01, 1, 0.1, dtype=float),
 
     "q_learning_params": {
         "alpha": 0.1,
