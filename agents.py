@@ -16,7 +16,7 @@ class Pheromone:
 
 
 class QLearning:
-    def __init__(self, actions=[0,1,2,3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01,
+    def __init__(self, actions=[0,1,3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01, #eliminata azione 2
                  q_table_file=None):
         self.actions = actions
         self.alpha = alpha  # learning rate
@@ -107,7 +107,7 @@ class QLearning:
 
         new_value = old_value + self.alpha * (reward + self.gamma * next_max - old_value)
 
-        self.q_table[state][action] = np.clip(new_value, -10, 10)
+        self.q_table[state][action] = np.clip(new_value, -100, 100)
 
         self.decay_epsilon()
 
@@ -195,7 +195,7 @@ class Wolf(Animal):
             super().__init__(model)
             self.use_learning = self.model.learning
 
-            self.action_counts = {0: 0, 1: 0, 2: 0, 3: 0}
+            self.action_counts = {0: 0, 1: 0, 3: 0}#eliminata azione 2
 
 
 
@@ -213,7 +213,7 @@ class Wolf(Animal):
                 else:
 
                     self.q_learning = QLearning(
-                        actions=[0, 1, 2, 3],
+                        actions=[0, 1, 3],
                         alpha=0.2,
                         gamma=0.95,
                         epsilon=0.5,
@@ -232,27 +232,75 @@ class Wolf(Animal):
             self.stayed = False
             self.eaten = False
 
+
+            self.last_sheep_distance = float('inf')
+            self.last_action = None
+            self.current_action = None
+
     def __del__(self):
         if self.use_learning and hasattr(self, 'q_table_file') and self.q_table_file:
             self.q_learning.save_q_table(self.q_table_file)
 
+
     #def calculate_reward(self):
     #    if self.eaten:
     #        self.eaten = False
-#
-    #        closest_sheep_dist = self.model.get_closest_sheep_distance(self.pos)
-    #        distance_bonus = 1.0 / (closest_sheep_dist + 1)
-    #        return self.fixed_reward + distance_bonus
-    #    else:
-#
-    #        closest_sheep_dist = self.model.get_closest_sheep_distance(self.pos)
-    #        return -0.1 * closest_sheep_dist
+    #        time_bonus = 1 / (self.steps_since_last_capture + 1)
+    #        return self.fixed_reward + self.distance_gain * time_bonus
+    #    return self.step_penalty
+
     def calculate_reward(self):
+
+        base_reward = 0
+
         if self.eaten:
             self.eaten = False
-            time_bonus = 1 / (self.steps_since_last_capture + 1)
-            return self.fixed_reward + self.distance_gain * time_bonus
-        return self.step_penalty
+            #time_bonus = 1 / (self.steps_since_last_capture + 1)
+            base_reward += 10.0 #+ (2.0 * time_bonus)
+            self.steps_since_last_capture = 0
+            return base_reward
+
+
+        #base_reward -= 0.1
+
+
+        current_dist = self.model.get_closest_sheep_distance(self.pos)
+
+
+        #if self.current_action == 2:
+        #    base_reward += 0.3
+
+
+        if hasattr(self, 'last_sheep_distance') and self.steps > 0:
+            dist_change = self.last_sheep_distance - current_dist
+
+            distance_reward = dist_change#0.2 * dist_change
+            base_reward += distance_reward
+
+        self.last_sheep_distance = current_dist
+
+
+        #if current_dist > 5:
+        #    exploration_bonus = 0.05
+        #    base_reward += exploration_bonus
+
+
+        #if hasattr(self, 'last_action') and hasattr(self, 'action_repetition'):
+        #    if self.last_action == self.current_action:
+        #        self.action_repetition += 1
+        #        base_reward -= 0.02 * self.action_repetition
+        #    else:
+        #        self.action_repetition = 0
+        #else:
+        #    self.action_repetition = 0
+#
+        #self.last_action = self.current_action
+
+
+        #final_reward = np.clip(base_reward, -1.0, 3.0)
+
+
+        return base_reward
     def step(self):
 
         #print(self.q_learning.epsilon, self.model.steps)
@@ -282,8 +330,10 @@ class Wolf(Animal):
         sheep_present = any(any(isinstance(obj, Sheep) for obj in self.model.grid.get_cell_list_contents(step)) for step in possible_steps)
 
         if self.use_learning:
+
             state = self.q_learning.get_state(self, pheromones, sheep_present)
             action = self.q_learning.choose_action(state)
+            self.current_action = action
 
             self.action_counts[action] += 1
 
@@ -298,8 +348,8 @@ class Wolf(Animal):
         elif action == 1:
             if possible_steps:
                 self.model.grid.move_agent(self, self.random.choice(possible_steps))
-        elif action == 2:
-            self.stayed = True
+        #elif action == 2:
+        #    self.stayed = True
         else:
             best_steps = self.get_best_step(possible_steps, pheromones, True, action)
             if best_steps:

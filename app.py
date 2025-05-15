@@ -74,7 +74,7 @@ model_params = {
         "epsilon": 0.3,
         "epsilon_decay": 0.895,
         "min_epsilon": 0.00,
-        "actions": [0, 1, 2, 3]
+        "actions": [0, 1, 3] #eliminata azione 2
     },
 
 }

@@ -8,7 +8,7 @@ import json
 from datetime import datetime
 import shutil
 
-save = True
+
 
 def save_q_table_to_results(q_table_file, output_dir):
 
@@ -88,13 +88,16 @@ def plot_results(df, learning=True, output_dir="./results"):
     plt.xticks(rotation=45)  # Ruota i tick se sono troppi
     plt.tight_layout()
 
-    filename = "reward_and_sheep.png" if learning else "sheep_only.png"
-    plt.savefig(os.path.join(output_dir, filename), dpi=300, bbox_inches='tight')
+    if save:
+        filename = "reward_and_sheep.png" if learning else "sheep_only.png"
+        plt.savefig(os.path.join(output_dir, filename), dpi=300, bbox_inches='tight')
     plt.show()
 
 
 def plot_simulation_steps(df, output_dir="./results"):
-    os.makedirs(output_dir, exist_ok=True)
+
+    if save:
+        os.makedirs(output_dir, exist_ok=True)
     if "Steps" not in df.columns:
         print("La colonna 'Steps' non è disponibile nei dati.")
         return
@@ -119,7 +122,7 @@ def plot_simulation_steps(df, output_dir="./results"):
     plt.show()
 
     print("\nAzioni totali per iterazione:")
-    print(df.groupby("iteration")[["Action_0", "Action_1", "Action_2", "Action_3"]].sum().to_string())
+    print(df.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].sum().to_string()) #eliminata azione 2
 
 #def plot_all_actions_in_one(df, output_dir="./results"):
 #    os.makedirs(output_dir, exist_ok=True)
@@ -150,38 +153,38 @@ def plot_simulation_steps(df, output_dir="./results"):
 #    plt.show()
 
 def plot_all_actions_in_one(df, output_dir="./results"):
-    plt.figure(figsize=(20, 10))  # Grafico più grande (24 pollici orizzontali)
-    plt.style.use('seaborn-v0_8')  # Stile moderno
+    plt.figure(figsize=(20, 10))
+    plt.style.use('seaborn-v0_8')
 
-    # Definizione azioni e relative etichette
-    actions = ["Action_0", "Action_1", "Action_2", "Action_3"]
-    action_labels = ["Follow sheep pheromone", "Random movement", "Stay still", "Walk away wolf pheromone"]
 
-    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]  # Colori distintivi (blu, arancio, verde, rosso)
+    actions = ["Action_0", "Action_1", "Action_3"] #eliminata azione 2
+    action_labels = ["Follow sheep pheromone", "Random movement", "Walk away wolf pheromone"]
 
-    # Preparazione dati
+    colors = ["#1f77b4", "#ff7f0e", "#d62728"]
+
+
     grouped = df.groupby("iteration")[actions].sum().reset_index()
 
-    # Plot di ogni azione con stile migliorato
+
     for action, label, color in zip(actions,action_labels, colors):
         plt.plot(
             grouped["iteration"],
             grouped[action],
             label=label,
-            linewidth=3,  # Linea più spessa
+            linewidth=3,
             color=color,
-            marker='o',  # Aggiunta di marker
+            marker='o',
             markersize=8,
             markeredgecolor='black',
-            alpha=0.8  # Leggera trasparenza
+            alpha=0.8
         )
 
-    # Titoli e assi
+
     plt.title("Distribuzione delle Azioni per Iterazione", fontsize=18, pad=20)
     plt.xlabel("Iterazione", fontsize=16, labelpad=15)
     plt.ylabel("Conteggio Azioni", fontsize=16, labelpad=15)
 
-    # Legenda avanzata
+
     legend = plt.legend(
         title="Azioni",
         title_fontsize=14,
@@ -190,21 +193,22 @@ def plot_all_actions_in_one(df, output_dir="./results"):
         shadow=True,
         facecolor='white',
         edgecolor='gray',
-        bbox_to_anchor=(1.02, 1),  # Sposta la legenda a destra
+        bbox_to_anchor=(1.02, 1),
         loc='upper left'
     )
 
-    # Griglia e tick
+
     plt.grid(True, linestyle='--', alpha=0.6)
-    plt.xticks(fontsize=12, rotation=45)  # Tick ruotati per leggibilità
+    plt.xticks(fontsize=12, rotation=45)
     plt.yticks(fontsize=12)
 
-    # Ottimizzazione layout
+
     plt.tight_layout()
 
-    # Salvataggio ad alta risoluzione
-    filepath = os.path.join(output_dir, "all_actions_usage.png")
-    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+
+    if save:
+        filepath = os.path.join(output_dir, "all_actions_usage.png")
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
     plt.show()
 def run_test_simulation(q_table_file, output_dir="./test_results", learning=True):
 
@@ -215,15 +219,15 @@ def run_test_simulation(q_table_file, output_dir="./test_results", learning=True
 
 
     params = {
-        "width": 20,
-        "height": 20,
+        "width": 35,
+        "height": 35,
         "initial_wolves": 5,
         "initial_sheep": 20,
         "q_table_file": q_table_file,
         "learning": learning,
         "testing": True,
         "max_steps": 200,
-        "respawn": True,
+        "respawn": False,
     }
 
 
@@ -231,7 +235,7 @@ def run_test_simulation(q_table_file, output_dir="./test_results", learning=True
         WolfSheepModel,
         parameters={k: v for k, v in params.items() if k != "q_learning_params"},
         data_collection_period=-1,
-        iterations=200,
+        iterations=100,
         display_progress=True,
         number_processes=1
     )
@@ -249,30 +253,31 @@ def run_test_simulation(q_table_file, output_dir="./test_results", learning=True
 if __name__ == "__main__":
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3],
-        "alpha": 0.1,
+        "actions": [0, 1, 3], #eliminata azione 2
+        "alpha": 0.2,
         "gamma": 0.9,
         "epsilon": 0.5,
-        "epsilon_decay": 0.965,
+        "epsilon_decay": 0.975,
         "min_epsilon": 0.01
     }
 
     testing = True
+    save = True
 
-    params = {"width": 20, "height": 20, "initial_wolves": 5, "initial_sheep": 20, "q_table_file": "q_table.json",
-              "learning": True, "max_steps": 200, "respawn": True, "diffusion_rate": 0.5, "pheromone_evaporation": 0.1,
+    params = {"width": 35, "height": 35, "initial_wolves": 5, "initial_sheep": 20, "q_table_file": "q_table.json",
+              "learning": True, "max_steps": 200, "respawn": False, "diffusion_rate": 0.5, "pheromone_evaporation": 0.1,
               "q_learning_params": q_learning_params}
 
 
     if testing:
-        run_test_simulation("./results/test25/q_table.json", learning=False)
+        run_test_simulation("./results/test36/q_table.json", learning=True)
 
     else:
         result = mesa.batch_run(
             lambda **kwargs: WolfSheepModel(**kwargs, q_learning_params=q_learning_params),
             parameters={k: v for k, v in params.items() if k != "q_learning_params"},
             data_collection_period=-1,
-            iterations=1000,
+            iterations=3000,
             display_progress=True,
             number_processes=1
         )
@@ -299,15 +304,13 @@ if __name__ == "__main__":
         #analyze_simulation(df)
 
         print("\nAzioni totali per iterazione:")
-        print(df.groupby("iteration")[["Action_0", "Action_1", "Action_2", "Action_3"]].sum().to_string())
+        print(df.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].sum().to_string())
 
-        # Salva i risultati
+
         if save:
             save_simulation_metadata(params, q_learning_params, output_dir=output_dir)
-
-
-            # Copia il file Q-table nella cartella dei risultati
             save_q_table_to_results(params["q_table_file"], abs_output_dir)
+
         plot_results(df, learning=params["learning"], output_dir=output_dir)
         plot_simulation_steps(df, output_dir=output_dir)
         plot_all_actions_in_one(df, output_dir=output_dir)

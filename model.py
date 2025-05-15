@@ -17,7 +17,7 @@ class WolfSheepModel(Model):
 
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
-                 pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=100,
+                 pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=200,
                  diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning_params=None, testing=False, seed=None):
          super().__init__(seed=seed)
 
@@ -41,9 +41,9 @@ class WolfSheepModel(Model):
          self.datacollector = DataCollector(
              model_reporters={
                  "Steps": self.get_steps,
-                 "Avg_Reward": lambda m: float(np.mean(
-                     [float(w.last_reward) for w in m.agents
-                      if isinstance(w, Wolf) and hasattr(w, 'last_reward')] or [0.0]))
+                 #"Avg_Reward": lambda m: float(np.mean(
+                 #    [float(w.last_reward) for w in m.agents
+                 #     if isinstance(w, Wolf) and hasattr(w, 'last_reward')] or [0.0]))
              },
              agent_reporters={
                  "Sheep_eaten": lambda a: int(a.sheep_eaten) if hasattr(a, 'sheep_eaten') else None,
@@ -51,7 +51,7 @@ class WolfSheepModel(Model):
                   if hasattr(a, 'rewards') and a.rewards else None,
                  "Action_0": lambda a: a.action_counts[0] if hasattr(a, "action_counts") else None,
                  "Action_1": lambda a: a.action_counts[1] if hasattr(a, "action_counts") else None,
-                 "Action_2": lambda a: a.action_counts[2] if hasattr(a, "action_counts") else None,
+                 #"Action_2": lambda a: a.action_counts[2] if hasattr(a, "action_counts") else None,
                  "Action_3": lambda a: a.action_counts[3] if hasattr(a, "action_counts") else None,
 
              }
@@ -113,21 +113,21 @@ class WolfSheepModel(Model):
     #    return [agent.pos for agent in neighbors if isinstance(agent, Sheep) and agent.alive]
 #
     def get_closest_sheep_distance(self, pos, radius=6):
-        """Versione ottimizzata che cerca solo in un raggio specifico"""
+
         neighbors = self.grid.get_neighbors(pos, moore=True, include_center=False, radius=radius)
         sheep = [agent for agent in neighbors if isinstance(agent, Sheep) and agent.alive]
 #
         if not sheep:
-            return radius + 1  # Restituisce un valore più grande del raggio di ricerca
+            return radius + 1
 #
         return min(self.get_distance(pos, s.pos) for s in sheep)
 
     def get_distance(self, pos1, pos2):
-        """Calcola la distanza tra due punti sulla griglia toroidale"""
+
         dx = abs(pos1[0] - pos2[0])
         dy = abs(pos1[1] - pos2[1])
 #
-        # Considera la natura toroidale della griglia
+
         dx = min(dx, self.grid.width - dx)
         dy = min(dy, self.grid.height - dy)
 #
@@ -151,7 +151,7 @@ class WolfSheepModel(Model):
                                 q_tables[state][action] = value
 
         if q_tables:
-            temp_q_learning = QLearning(actions=[0, 1, 2, 3])
+            temp_q_learning = QLearning(actions=[0, 1, 3]) #eliminata azione 2
             temp_q_learning.q_table = q_tables
             temp_q_learning.save_q_table(self.q_table_file)
 
