@@ -53,6 +53,8 @@ class WolfSheepModel(Model):
                  "Action_1": lambda a: a.action_counts[1] if hasattr(a, "action_counts") else None,
                  #"Action_2": lambda a: a.action_counts[2] if hasattr(a, "action_counts") else None,
                  "Action_3": lambda a: a.action_counts[3] if hasattr(a, "action_counts") else None,
+                 "Capture_Intervals": lambda a: a.capture_intervals if hasattr(a, 'capture_intervals') else [],
+
 
              }
          )

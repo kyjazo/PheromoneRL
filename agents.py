@@ -65,14 +65,14 @@ class QLearning:
     #    return (max_index, sheep_presence)
 
     def get_state(self, wolf, pheromones, sheep_present):
-        # Differenze feromoni nelle 8 direzioni
+
         differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
         max_index = int(np.argmax(differences))
 
-        # Presenza pecora
+
         sheep_presence = int(sheep_present)
 
-        # Distanza dalla pecora più vicina (categorizzata)
+
         closest_dist = wolf.model.get_closest_sheep_distance(wolf.pos)
         if closest_dist <= 1.5:
             dist_category = 0
@@ -91,7 +91,7 @@ class QLearning:
             
 
         if self.training and random.random() < self.epsilon:
-            # Scegli azioni meno esplorate in questo stato
+
             action_counts = {a: self.q_table[state][a] for a in self.actions}
             least_tried = min(action_counts, key=action_counts.get)
             return least_tried
@@ -197,7 +197,7 @@ class Wolf(Animal):
 
             self.action_counts = {0: 0, 1: 0, 3: 0}#eliminata azione 2
 
-
+            self.capture_intervals = []
 
             if self.use_learning:
                 if self.model.testing:
@@ -254,10 +254,11 @@ class Wolf(Animal):
         base_reward = 0
 
         if self.eaten:
-            self.eaten = False
+
             #time_bonus = 1 / (self.steps_since_last_capture + 1)
             base_reward += 10.0 #+ (2.0 * time_bonus)
-            self.steps_since_last_capture = 0
+
+            self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
             return base_reward
 
 
@@ -362,9 +363,17 @@ class Wolf(Animal):
         self.eaten = self.eat_sheep()
 
         if self.use_learning:
+
             reward = self.calculate_reward()
+
             if self.eaten:
+
+                if self.steps_since_last_capture > 0:
+                    self.capture_intervals.append(self.steps_since_last_capture)
+
                 self.steps_since_last_capture = 0
+                self.eaten = False
+
             else:
                 self.steps_since_last_capture += 1
 
