@@ -76,9 +76,9 @@ class WolfSheepModel(Model):
     #        self.grid.place_agent(agent, tuple(pos))
 
     def place_agents(self, agent_class, num_agents):
-        agents = agent_class.create_agents(model=self, n=num_agents)
 
         if agent_class.__name__ == "Wolf":
+            agents = agent_class.create_agents(model=self, n=num_agents, q_table_file=self.q_table_file)
 
             center_x, center_y = self.grid.width // 2, self.grid.height // 2
             positions = [(center_x + dx, center_y + dy)
@@ -87,7 +87,7 @@ class WolfSheepModel(Model):
             positions = positions[:num_agents]
 
         elif agent_class.__name__ == "Sheep":
-
+            agents = agent_class.create_agents(model=self, n=num_agents)
             positions = []
             while len(positions) < num_agents:
                 x = self.random.randint(0, self.grid.width - 1)
@@ -102,37 +102,33 @@ class WolfSheepModel(Model):
             positions = positions[:num_agents]
 
         else:
-            # Posizionamento casuale per altri agenti
+            agents = agent_class.create_agents(model=self, n=num_agents)
             positions = np.column_stack((self.rng.integers(0, self.grid.width, size=num_agents),
                                          self.rng.integers(0, self.grid.height, size=num_agents)))
 
         for agent, pos in zip(agents, positions):
             self.grid.place_agent(agent, tuple(pos))
 
-    #def get_sheep_positions_near(self, pos, radius=3):
-    #    """Restituisce le posizioni delle pecore entro un certo raggio"""
-    #    neighbors = self.grid.get_neighbors(pos, moore=True, include_center=False, radius=radius)
-    #    return [agent.pos for agent in neighbors if isinstance(agent, Sheep) and agent.alive]
-#
+
+
     def get_closest_sheep_distance(self, pos, radius=6):
 
         neighbors = self.grid.get_neighbors(pos, moore=True, include_center=False, radius=radius)
         sheep = [agent for agent in neighbors if isinstance(agent, Sheep) and agent.alive]
-#
+
         if not sheep:
             return radius + 1
-#
+
         return min(self.get_distance(pos, s.pos) for s in sheep)
 
     def get_distance(self, pos1, pos2):
 
         dx = abs(pos1[0] - pos2[0])
         dy = abs(pos1[1] - pos2[1])
-#
 
         dx = min(dx, self.grid.width - dx)
         dy = min(dy, self.grid.height - dy)
-#
+
         return math.sqrt(dx ** 2 + dy ** 2)
 
     def save_q_tables(self):
@@ -156,6 +152,10 @@ class WolfSheepModel(Model):
             temp_q_learning = QLearning(actions=[0, 1, 3]) #eliminata azione 2
             temp_q_learning.q_table = q_tables
             temp_q_learning.save_q_table(self.q_table_file)
+
+
+
+
 
     def diffuse_pheromones(self):
 
@@ -214,7 +214,6 @@ class WolfSheepModel(Model):
             else:
                 self.evaporate_pheromones()
                 self.diffuse_pheromones()
-
 
     def __del__(self):
         self.save_q_tables()

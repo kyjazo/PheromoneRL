@@ -16,7 +16,7 @@ class Pheromone:
 
 
 class QLearning:
-    def __init__(self, actions=[0,1,3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01, #eliminata azione 2
+    def __init__(self, actions=[0, 1, 3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01, #eliminata azione 2
                  q_table_file=None):
         self.actions = actions
         self.alpha = alpha  # learning rate
@@ -26,8 +26,9 @@ class QLearning:
         self.min_epsilon = min_epsilon  # valore minimo di exploration
         self.q_table = {}
         self.training = True
-
+        #print(os.path.exists(q_table_file))
         if q_table_file and os.path.exists(q_table_file):
+
             self.load_q_table(q_table_file)
 
     def decay_epsilon(self):
@@ -43,6 +44,8 @@ class QLearning:
         with open(filename, 'w') as f:
             json.dump(serializable_q_table, f, indent=2)
 
+        print(f"Salvato q_table in {filename} (dimensione: {len(serializable_q_table)} stati)")
+
     def load_q_table(self, filename):
 
         with open(filename, 'r') as f:
@@ -53,25 +56,14 @@ class QLearning:
             for k, v in serializable_q_table.items()
         }
 
-    #def get_state(self, wolf, pheromones, sheep_present):
-#
-    #    differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
-#
-    #    max_index = int(np.argmax(differences))  # sarà da 0 a 7
-#
-    #    # Presenza pecora: 1 se True, 0 altrimenti
-    #    sheep_presence = int(sheep_present)
-#
-    #    return (max_index, sheep_presence)
+        print(f"Caricato q_table da {filename} (dimensione: {len(self.q_table)} stati)")
 
     def get_state(self, wolf, pheromones, sheep_present):
 
         differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
         max_index = int(np.argmax(differences))
 
-
         sheep_presence = int(sheep_present)
-
 
         closest_dist = wolf.model.get_closest_sheep_distance(wolf.pos)
         if closest_dist <= 1.5:
@@ -111,13 +103,10 @@ class QLearning:
 
         self.decay_epsilon()
 
-
-
 class Animal(Agent):
     def __init__(self, model):
         super().__init__(model)
         self.steps = 0
-
 
     def move(self):
         self.steps += 1
@@ -141,11 +130,6 @@ class Animal(Agent):
 
     def get_best_step(self, possible_steps, pheromones, is_wolf, action=None):
         if is_wolf:
-            #per ora consideriamo solamente i feromoni delle pecore
-            #pheromone_differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
-            #max_difference = max(pheromone_differences)
-            #return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
-
             if action == 0:
                 pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
                 max_pheromone = max(pheromone_concentrations)
@@ -160,11 +144,6 @@ class Animal(Agent):
                 return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
 
         else:
-            #pecora si allontanava dai feromoni
-            #pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
-            #min_pheromone = min(pheromone_concentrations)
-            #return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
-            #ora si muove random
             return [self.random.choice(possible_steps)]
 
     def step(self):
@@ -222,16 +201,13 @@ class Wolf(Animal):
                         q_table_file=q_table_file
                     )
 
-                self.fixed_reward = 20
-                self.step_penalty = -0.5
-                self.distance_gain = 1
+
                 self.rewards = []
 
             self.sheep_eaten = 0
             self.steps_since_last_capture = 0
             self.stayed = False
             self.eaten = False
-
 
             self.last_sheep_distance = float('inf')
             self.last_action = None
@@ -240,14 +216,7 @@ class Wolf(Animal):
     def __del__(self):
         if self.use_learning and hasattr(self, 'q_table_file') and self.q_table_file:
             self.q_learning.save_q_table(self.q_table_file)
-
-
-    #def calculate_reward(self):
-    #    if self.eaten:
-    #        self.eaten = False
-    #        time_bonus = 1 / (self.steps_since_last_capture + 1)
-    #        return self.fixed_reward + self.distance_gain * time_bonus
-    #    return self.step_penalty
+            self.q_learning.save_q_table(self.q_table_file)
 
     def calculate_reward(self):
 
@@ -255,56 +224,24 @@ class Wolf(Animal):
 
         if self.eaten:
 
-            #time_bonus = 1 / (self.steps_since_last_capture + 1)
-            base_reward += 10.0 #+ (2.0 * time_bonus)
+            base_reward += 10.0
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
             return base_reward
 
-
-        #base_reward -= 0.1
-
-
         current_dist = self.model.get_closest_sheep_distance(self.pos)
-
-
-        #if self.current_action == 2:
-        #    base_reward += 0.3
-
 
         if hasattr(self, 'last_sheep_distance') and self.steps > 0:
             dist_change = self.last_sheep_distance - current_dist
 
-            distance_reward = dist_change#0.2 * dist_change
+            distance_reward = dist_change# * 2
             base_reward += distance_reward
 
         self.last_sheep_distance = current_dist
 
-
-        #if current_dist > 5:
-        #    exploration_bonus = 0.05
-        #    base_reward += exploration_bonus
-
-
-        #if hasattr(self, 'last_action') and hasattr(self, 'action_repetition'):
-        #    if self.last_action == self.current_action:
-        #        self.action_repetition += 1
-        #        base_reward -= 0.02 * self.action_repetition
-        #    else:
-        #        self.action_repetition = 0
-        #else:
-        #    self.action_repetition = 0
-#
-        #self.last_action = self.current_action
-
-
-        #final_reward = np.clip(base_reward, -1.0, 3.0)
-
-
         return base_reward
     def step(self):
 
-        #print(self.q_learning.epsilon, self.model.steps)
         self.update_pheromone()
 
         if(self.stayed):
@@ -338,7 +275,6 @@ class Wolf(Animal):
 
             self.action_counts[action] += 1
 
-
         else:
             action = -1
 
@@ -355,10 +291,6 @@ class Wolf(Animal):
             best_steps = self.get_best_step(possible_steps, pheromones, True, action)
             if best_steps:
                 self.model.grid.move_agent(self, self.random.choice(best_steps))
-
-
-
-
 
         self.eaten = self.eat_sheep()
 
@@ -455,9 +387,9 @@ class Pheromones(Agent):
         self.next_wolf = 0.0
         self.next_sheep = 0.0
 
-        # Tutte le 8 direzioni (4 cardinali + 4 diagonali)
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0),  # Cardinali
-                      (1, 1), (1, -1), (-1, 1), (-1, -1)]  # Diagonali
+
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0),
+                      (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
 
         fraction_per_direction = self.model.diffusion_rate / len(directions)

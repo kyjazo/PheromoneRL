@@ -342,7 +342,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
         lambda **kwargs: WolfSheepModel(**kwargs, q_learning_params=q_learning_params),
         parameters={k: v for k, v in params.items() if k != "q_learning_params"},
         data_collection_period=-1,
-        iterations=500,
+        iterations=100,
         number_processes=1,
         display_progress=True
     )
@@ -428,8 +428,8 @@ if __name__ == "__main__":
     num_parallel_runs = 5
 
     base_params = {
-        "width": 35,
-        "height": 35,
+        "width": 45,
+        "height": 45,
         "initial_wolves": 5,
         "initial_sheep": 20,
         "learning": True,
@@ -441,10 +441,10 @@ if __name__ == "__main__":
 
     q_learning_params = {
         "actions": [0, 1, 3],
-        "alpha": 0.2,
-        "gamma": 0.9,
+        "alpha": 0.1,
+        "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.975,
+        "epsilon_decay": 0.965,
         "min_epsilon": 0.01
     }
 
