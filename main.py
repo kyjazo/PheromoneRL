@@ -425,7 +425,7 @@ if __name__ == "__main__":
 
 
     save = True
-    num_parallel_runs = 5
+    num_parallel_runs = 3
 
     base_params = {
         "width": 45,

@@ -44,7 +44,7 @@ class QLearning:
         with open(filename, 'w') as f:
             json.dump(serializable_q_table, f, indent=2)
 
-        print(f"Salvato q_table in {filename} (dimensione: {len(serializable_q_table)} stati)")
+        #print(f"Salvato q_table in {filename} (dimensione: {len(serializable_q_table)} stati)")
 
     def load_q_table(self, filename):
 
@@ -56,7 +56,7 @@ class QLearning:
             for k, v in serializable_q_table.items()
         }
 
-        print(f"Caricato q_table da {filename} (dimensione: {len(self.q_table)} stati)")
+        #print(f"Caricato q_table da {filename} (dimensione: {len(self.q_table)} stati)")
 
     def get_state(self, wolf, pheromones, sheep_present):
 
@@ -144,7 +144,10 @@ class Animal(Agent):
                 return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
 
         else:
-            return [self.random.choice(possible_steps)]
+            #return [self.random.choice(possible_steps)]
+            pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+            min_pheromone = min(pheromone_concentrations)
+            return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
 
     def step(self):
         self.move()
