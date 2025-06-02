@@ -433,8 +433,8 @@ if __name__ == "__main__":
         "initial_wolves": 5,
         "initial_sheep": 20,
         "learning": True,
-        "max_steps": 200,
-        "respawn": False,
+        "max_steps": 3000,
+        "respawn": True,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
     }
@@ -444,7 +444,7 @@ if __name__ == "__main__":
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.965,
+        "epsilon_decay": 0.998,
         "min_epsilon": 0.01
     }
 

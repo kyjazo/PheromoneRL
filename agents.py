@@ -84,9 +84,11 @@ class QLearning:
 
         if self.training and random.random() < self.epsilon:
 
-            action_counts = {a: self.q_table[state][a] for a in self.actions}
-            least_tried = min(action_counts, key=action_counts.get)
-            return least_tried
+            #action_counts = {a: self.q_table[state][a] for a in self.actions}
+            #least_tried = min(action_counts, key=action_counts.get)
+            #return least_tried
+
+            return random.choice(self.actions)
         else:
             return max(self.q_table[state].items(), key=lambda x: x[1])[0]
 
