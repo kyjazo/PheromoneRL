@@ -17,18 +17,27 @@ class Pheromone:
 
 class QLearning:
     def __init__(self, actions=[0, 1, 3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01, #eliminata azione 2
-                 q_table_file=None):
-        self.actions = actions
-        self.alpha = alpha  # learning rate
-        self.gamma = gamma  # discount factor
-        self.epsilon = epsilon  # exploration rate iniziale
-        self.epsilon_decay = epsilon_decay  # fattore di decadimento
-        self.min_epsilon = min_epsilon  # valore minimo di exploration
+                 q_table_file=None, q_learning=None):
+        if q_learning:
+            self.actions = q_learning.actions
+            self.alpha = q_learning.alpha
+            self.gamma = q_learning.gamma
+            self.epsilon = q_learning.epsilon
+            self.epsilon_decay = q_learning.epsilon_decay
+            self.min_epsilon = q_learning.min_epsilon
+
+        else:
+            self.actions = actions
+            self.alpha = alpha  # learning rate
+            self.gamma = gamma  # discount factor
+            self.epsilon = epsilon  # exploration rate iniziale
+            self.epsilon_decay = epsilon_decay  # fattore di decadimento
+            self.min_epsilon = min_epsilon  # valore minimo di exploration
+
         self.q_table = {}
         self.training = True
         #print(os.path.exists(q_table_file))
         if q_table_file and os.path.exists(q_table_file):
-
             self.load_q_table(q_table_file)
 
     def decay_epsilon(self):
@@ -103,7 +112,9 @@ class QLearning:
 
         self.q_table[state][action] = np.clip(new_value, -100, 100)
 
-        self.decay_epsilon()
+        #self.decay_epsilon() ######il decay lo faccio dopo ogni simulazione non dopo ogni step
+
+
 
 class Animal(Agent):
     def __init__(self, model):
@@ -190,8 +201,8 @@ class Wolf(Animal):
                     self.q_learning.epsilon = 0
                     self.q_learning.alpha = 0
 
-                elif self.model.q_learning_params != None:
-                    self.q_learning = QLearning(**self.model.q_learning_params,
+                elif self.model.q_learning!= None:
+                    self.q_learning = QLearning(q_learning=self.model.q_learning,
                                                 q_table_file=q_table_file)
 
                 else:

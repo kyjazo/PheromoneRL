@@ -9,6 +9,7 @@ from datetime import datetime
 import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import partial
+from agents import QLearning
 
 
 
@@ -228,7 +229,7 @@ def plot_all_actions_in_one(df, output_dir="./results"):
     plt.show()
 
 
-def run_test_simulation(q_table_file, output_dir="./test_results", learning=True):
+def run_test_simulation(q_table_file="q_table_avg.json", output_dir="./test_results", learning=True):
 
     if not learning:
         output_dir="./test_results_NL"
@@ -237,15 +238,15 @@ def run_test_simulation(q_table_file, output_dir="./test_results", learning=True
 
 
     params = {
-        "width": 35,
-        "height": 35,
+        "width": 45,
+        "height": 45,
         "initial_wolves": 5,
         "initial_sheep": 20,
         "q_table_file": q_table_file,
         "learning": learning,
         "testing": True,
-        "max_steps": 200,
-        "respawn": False,
+        "max_steps": 100,
+        "respawn": True,
     }
 
 
@@ -338,14 +339,17 @@ def run_single_simulation(run_id, base_params, q_learning_params):
     params = base_params.copy()
     params["q_table_file"] = q_table_file
 
+    q = QLearning(**q_learning_params, q_table_file=q_table_file)
+    print(q.epsilon)
     result = mesa.batch_run(
-        lambda **kwargs: WolfSheepModel(**kwargs, q_learning_params=q_learning_params),
+        lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
         parameters={k: v for k, v in params.items() if k != "q_learning_params"},
         data_collection_period=-1,
         iterations=300,
         number_processes=1,
         display_progress=True
     )
+    print(q.epsilon)
     return result, q_table_file
 
 def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
@@ -424,7 +428,7 @@ def plot_capture_median(df, output_dir="./results"):
 if __name__ == "__main__":
 
 
-    save = True
+
     num_parallel_runs = 3
 
     base_params = {
@@ -448,42 +452,51 @@ if __name__ == "__main__":
         "min_epsilon": 0.01
     }
 
+
+
     all_results = []
     q_tables_paths = []
+    testing = False
+    save = True
 
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
-                   for i in range(num_parallel_runs)]
+    if testing:
+        run_test_simulation(learning=False)
 
-        for i, future in enumerate(as_completed(futures)):
-            sim_result, q_table_file = future.result()
-            for r in sim_result:
-                r["run_id"] = i
-            all_results.extend(sim_result)
-            q_tables_paths.append(q_table_file)
+    else:
+        with ProcessPoolExecutor() as executor:
+            futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
+                       for i in range(num_parallel_runs)]
 
-    merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
-    #clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
+            for i, future in enumerate(as_completed(futures)):
+                sim_result, q_table_file = future.result()
+                for r in sim_result:
+                    r["run_id"] = i
+                all_results.extend(sim_result)
+                q_tables_paths.append(q_table_file)
 
-    df = pd.DataFrame(all_results)
-    print(df)
-    print(df.dropna(subset=['Capture_Intervals']))
-    df = df.dropna(subset=['Sheep_eaten'])
+        merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
+        clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
 
+        df = pd.DataFrame(all_results)
 
-
-    output_dir, abs_output_dir = get_next_test_folder()
-
-    if save:
-        save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
-        save_q_table_to_results("q_table_avg.json", abs_output_dir)
-
+        print(df)
+        print(df.dropna(subset=['Capture_Intervals']))
+        df = df.dropna(subset=['Sheep_eaten'])
 
 
-    plot_results(df, learning=True, output_dir=output_dir)
-    plot_simulation_steps(df, output_dir=output_dir)
-    plot_all_actions_in_one(df, output_dir=output_dir)
-    plot_capture_median(df, output_dir=output_dir)
+
+        output_dir, abs_output_dir = get_next_test_folder()
+
+        if save:
+            save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
+            save_q_table_to_results("q_table_avg.json", abs_output_dir)
+
+
+
+        plot_results(df, learning=True, output_dir=output_dir)
+        plot_simulation_steps(df, output_dir=output_dir)
+        plot_all_actions_in_one(df, output_dir=output_dir)
+        plot_capture_median(df, output_dir=output_dir)
 
 
 

@@ -18,11 +18,11 @@ class WolfSheepModel(Model):
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
                  pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=200,
-                 diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning_params=None, testing=False, seed=None):
+                 diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning=None, testing=False, seed=None):
          super().__init__(seed=seed)
 
          self.testing = testing
-         self.q_learning_params = q_learning_params
+         self.q_learning = q_learning
          self.respawn = respawn
          self.learning = learning
          self.diffusion_rate = diffusion_rate
@@ -196,9 +196,14 @@ class WolfSheepModel(Model):
         self.wolf_pheromone_layer.data = new_wolf
         self.sheep_pheromone_layer.data = new_sheep
 
+    def decay_epsilon(self):
+        if self.learning:
+            self.q_learning.epsilon = max(self.q_learning.min_epsilon, self.q_learning.epsilon * self.q_learning.epsilon_decay)
     def step(self):
 
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
+
+            self.decay_epsilon()
             #print("finita simulazione, chiamo save table")
             self.save_q_tables()
             self.datacollector.collect(self)
