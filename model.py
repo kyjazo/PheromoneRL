@@ -152,7 +152,7 @@ class WolfSheepModel(Model):
             temp_q_learning = QLearning(actions=[0, 1, 3]) #eliminata azione 2
             temp_q_learning.q_table = q_tables
             temp_q_learning.save_q_table(self.q_table_file)
-
+            #print("Saved: ", self.q_table_file)
 
 
 
@@ -199,6 +199,7 @@ class WolfSheepModel(Model):
     def step(self):
 
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
+            #print("finita simulazione, chiamo save table")
             self.save_q_tables()
             self.datacollector.collect(self)
             self.running = False
@@ -215,7 +216,10 @@ class WolfSheepModel(Model):
                 self.evaporate_pheromones()
                 self.diffuse_pheromones()
 
+            #self.save_q_tables()
+
     def __del__(self):
+        #print("Chiamo save tables")
         self.save_q_tables()
 
     def get_steps(self):

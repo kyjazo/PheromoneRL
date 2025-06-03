@@ -342,7 +342,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
         lambda **kwargs: WolfSheepModel(**kwargs, q_learning_params=q_learning_params),
         parameters={k: v for k, v in params.items() if k != "q_learning_params"},
         data_collection_period=-1,
-        iterations=100,
+        iterations=300,
         number_processes=1,
         display_progress=True
     )
@@ -350,7 +350,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
 
 def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
     combined_q_table = {}
-
+    print(q_table_files)
     for file in q_table_files:
         with open(file, "r") as f:
             q_table = json.load(f)
@@ -433,7 +433,7 @@ if __name__ == "__main__":
         "initial_wolves": 5,
         "initial_sheep": 20,
         "learning": True,
-        "max_steps": 3000,
+        "max_steps": 1000,
         "respawn": True,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
@@ -444,7 +444,7 @@ if __name__ == "__main__":
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.998,
+        "epsilon_decay": 0.996,
         "min_epsilon": 0.01
     }
 
@@ -463,7 +463,7 @@ if __name__ == "__main__":
             q_tables_paths.append(q_table_file)
 
     merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
-    clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
+    #clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
 
     df = pd.DataFrame(all_results)
     print(df)
