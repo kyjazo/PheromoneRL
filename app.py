@@ -1,7 +1,7 @@
 import solara
 from mesa.visualization import SolaraViz, make_space_component, Slider
 from model import WolfSheepModel
-from agents import Wolf, Sheep, Pheromones
+from agents import Wolf, Sheep, Pheromones, QLearning
 
 
 def agent_portrayal(agent):
@@ -39,6 +39,17 @@ def agent_portrayal(agent):
 
     return portrayal
 
+q_learning_params = {
+        "actions": [0, 1, 3],
+        "alpha": 0.1,
+        "gamma": 0.99,
+        "epsilon": 0.5,
+        "epsilon_decay": 0.998,
+        "min_epsilon": 0.01
+    }
+
+
+q = QLearning(**q_learning_params)
 
 model_params = {
     "render_pheromone": {
@@ -68,20 +79,12 @@ model_params = {
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
     "diffusion_rate": Slider("Diffusion Rate", 0.1, 0.01, 1, 0.1, dtype=float),
 
-    "q_learning_params": {
-        "alpha": 0.1,
-        "gamma": 0.99,
-        "epsilon": 0.3,
-        "epsilon_decay": 0.895,
-        "min_epsilon": 0.00,
-        "actions": [0, 1, 3] #eliminata azione 2
-    },
 
 }
 
-myModel = WolfSheepModel()
+myModel = WolfSheepModel(q_learning=q)
 
-# Aggiungi propertylayer_portrayal al make_space_component
+
 SpaceGraph = make_space_component(
     agent_portrayal=agent_portrayal,
 )

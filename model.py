@@ -17,10 +17,10 @@ class WolfSheepModel(Model):
 
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
-                 pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table.json", max_steps=200,
+                 pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table_avg.json", max_steps=200,
                  diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning=None, testing=False, seed=None):
          super().__init__(seed=seed)
-
+         #print(q_learning.epsilon_decay)
          self.testing = testing
          self.q_learning = q_learning
          self.respawn = respawn

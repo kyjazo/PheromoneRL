@@ -120,11 +120,12 @@ class Animal(Agent):
     def __init__(self, model):
         super().__init__(model)
         self.steps = 0
+        self.movement_speed = 1
 
     def move(self):
         self.steps += 1
         possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False
+            self.pos, moore=True, include_center=False,radius=self.movement_speed
         )
 
         pheromones = [
@@ -204,6 +205,7 @@ class Wolf(Animal):
                 elif self.model.q_learning!= None:
                     self.q_learning = QLearning(q_learning=self.model.q_learning,
                                                 q_table_file=q_table_file)
+
 
                 else:
 
@@ -376,6 +378,7 @@ class Sheep(Animal):
     def __init__(self, model):
         super().__init__(model)
         self.alive = True
+        self.movement_speed = 2
 
     def respawn(self):
         self.model.grid.move_agent(self, self.random_position())

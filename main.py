@@ -340,16 +340,16 @@ def run_single_simulation(run_id, base_params, q_learning_params):
     params["q_table_file"] = q_table_file
 
     q = QLearning(**q_learning_params, q_table_file=q_table_file)
-    print(q.epsilon)
+    #print(q.epsilon)
     result = mesa.batch_run(
         lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
         parameters={k: v for k, v in params.items() if k != "q_learning_params"},
         data_collection_period=-1,
-        iterations=300,
+        iterations=3000,
         number_processes=1,
         display_progress=True
     )
-    print(q.epsilon)
+    #print(q.epsilon)
     return result, q_table_file
 
 def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
@@ -437,8 +437,8 @@ if __name__ == "__main__":
         "initial_wolves": 5,
         "initial_sheep": 20,
         "learning": True,
-        "max_steps": 1000,
-        "respawn": True,
+        "max_steps": 200,
+        "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
     }
@@ -448,7 +448,7 @@ if __name__ == "__main__":
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.996,
+        "epsilon_decay": 0.998,
         "min_epsilon": 0.01
     }
 
