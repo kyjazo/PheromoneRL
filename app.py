@@ -49,18 +49,18 @@ q_learning_params = {
     }
 
 
-q = QLearning(**q_learning_params)
+
 
 model_params = {
     "render_pheromone": {
         "type": "Select",
-        "value": False,
+        "value": True,
         "values": [True, False],
         "label": "Render Pheromone?",
     },
     "respawn": {
         "type": "Select",
-        "value": True,
+        "value": False,
         "values": [True, False],
         "label": "respawn?",
     },
@@ -71,30 +71,36 @@ model_params = {
         "label": "learning?",
     },
 
-    "height": Slider("Height", 20, 5, 100, 5, dtype=int),
-    "width": Slider("Width", 20, 5, 100, 5, dtype=int),
+    "height": Slider("Height", 45, 5, 100, 5, dtype=int),
+    "width": Slider("Width", 45, 5, 100, 5, dtype=int),
     "initial_sheep": Slider("Initial Sheep Population", 20, 1, 100, 1, dtype=int),
     "initial_wolves": Slider("Initial Wolf Population", 5, 1, 20, 1, dtype=int),
     "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
     "diffusion_rate": Slider("Diffusion Rate", 0.1, 0.01, 1, 0.1, dtype=float),
+    "testing": {
+        "type": "Select",
+        "value": True,
+        "values": [True, False],
+        "label": "testing?",
+    },
+
 
 
 }
 
-myModel = WolfSheepModel(q_learning=q)
-
-
 SpaceGraph = make_space_component(
     agent_portrayal=agent_portrayal,
-)
 
+)
+wolfmodel=WolfSheepModel()
 viz = SolaraViz(
-    model=myModel,
+    model=wolfmodel,
     components=[SpaceGraph],
     model_params=model_params,
     name="WolfSheepModel"
 )
+
 
 @solara.component
 def Page():

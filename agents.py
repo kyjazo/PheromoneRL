@@ -12,9 +12,6 @@ class Pheromone:
     sheep_concentration: float = 0.0
 
 
-
-
-
 class QLearning:
     def __init__(self, actions=[0, 1, 3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01, #eliminata azione 2
                  q_table_file=None, q_learning=None):
@@ -125,7 +122,7 @@ class Animal(Agent):
     def move(self):
         self.steps += 1
         possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False,radius=self.movement_speed
+            self.pos, moore=True, include_center=False, radius=self.movement_speed
         )
 
         pheromones = [
@@ -260,7 +257,7 @@ class Wolf(Animal):
         return base_reward
     def step(self):
 
-        self.update_pheromone()
+        #self.update_pheromone()
 
         if(self.stayed):
             possible_steps = self.model.grid.get_neighborhood(
@@ -309,6 +306,8 @@ class Wolf(Animal):
             best_steps = self.get_best_step(possible_steps, pheromones, True, action)
             if best_steps:
                 self.model.grid.move_agent(self, self.random.choice(best_steps))
+
+        self.update_pheromone()#rilascio feromoni anche dopo il movimento
 
         self.eaten = self.eat_sheep()
 
@@ -391,6 +390,7 @@ class Sheep(Animal):
         )
     def step(self):
         if self.alive:
+
             super().step()
             self.update_pheromone()
 

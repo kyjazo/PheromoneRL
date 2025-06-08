@@ -20,7 +20,7 @@ class WolfSheepModel(Model):
                  pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table_avg.json", max_steps=200,
                  diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning=None, testing=False, seed=None):
          super().__init__(seed=seed)
-         #print(q_learning.epsilon_decay)
+
          self.testing = testing
          self.q_learning = q_learning
          self.respawn = respawn
@@ -41,9 +41,7 @@ class WolfSheepModel(Model):
          self.datacollector = DataCollector(
              model_reporters={
                  "Steps": self.get_steps,
-                 #"Avg_Reward": lambda m: float(np.mean(
-                 #    [float(w.last_reward) for w in m.agents
-                 #     if isinstance(w, Wolf) and hasattr(w, 'last_reward')] or [0.0]))
+                 "Sheep_Alive": self.get_sheeps
              },
              agent_reporters={
                  "Sheep_eaten": lambda a: int(a.sheep_eaten) if hasattr(a, 'sheep_eaten') else None,
@@ -58,6 +56,9 @@ class WolfSheepModel(Model):
 
              }
          )
+
+
+
 
          self.place_agents(Wolf, initial_wolves)
          self.place_agents(Sheep, initial_sheep)
@@ -202,8 +203,8 @@ class WolfSheepModel(Model):
     def step(self):
 
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
-
-            self.decay_epsilon()
+            if not self.testing:
+                self.decay_epsilon()
             #print("finita simulazione, chiamo save table")
             self.save_q_tables()
             self.datacollector.collect(self)
@@ -229,6 +230,9 @@ class WolfSheepModel(Model):
 
     def get_steps(self):
         return self.steps
+    def get_sheeps(self):
+        return sum(1 for agent in self.agents
+                   if isinstance(agent, Sheep) and agent.alive)
     def count_agents(self, agent_type):
         return sum(1 for agent in self.agents if isinstance(agent, agent_type))
 
