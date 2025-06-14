@@ -49,7 +49,7 @@ class WolfSheepModel(Model):
                   if hasattr(a, 'rewards') and a.rewards else None,
                  "Action_0": lambda a: a.action_counts[0] if hasattr(a, "action_counts") else None,
                  "Action_1": lambda a: a.action_counts[1] if hasattr(a, "action_counts") else None,
-                 #"Action_2": lambda a: a.action_counts[2] if hasattr(a, "action_counts") else None,
+                 "Action_2": lambda a: a.action_counts[2] if hasattr(a, "action_counts") else None,
                  "Action_3": lambda a: a.action_counts[3] if hasattr(a, "action_counts") else None,
                  "Capture_Intervals": lambda a: a.capture_intervals if hasattr(a, 'capture_intervals') else [],
 
@@ -150,7 +150,7 @@ class WolfSheepModel(Model):
                                 q_tables[state][action] = value
 
         if q_tables:
-            temp_q_learning = QLearning(actions=[0, 1, 3]) #eliminata azione 2
+            temp_q_learning = QLearning(actions=[0, 1, 2, 3])
             temp_q_learning.q_table = q_tables
             temp_q_learning.save_q_table(self.q_table_file)
             #print("Saved: ", self.q_table_file)

@@ -13,7 +13,7 @@ class Pheromone:
 
 
 class QLearning:
-    def __init__(self, actions=[0, 1, 3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01, #eliminata azione 2
+    def __init__(self, actions=[0, 1, 2, 3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01,
                  q_table_file=None, q_learning=None):
         if q_learning:
             self.actions = q_learning.actions
@@ -53,14 +53,16 @@ class QLearning:
         #print(f"Salvato q_table in {filename} (dimensione: {len(serializable_q_table)} stati)")
 
     def load_q_table(self, filename):
+        if not os.path.exists(filename):
+            return
+        else:
+            with open(filename, 'r') as f:
+                serializable_q_table = json.load(f)
 
-        with open(filename, 'r') as f:
-            serializable_q_table = json.load(f)
-
-        self.q_table = {
-            eval(k): {int(ak): float(av) for ak, av in v.items()}
-            for k, v in serializable_q_table.items()
-        }
+            self.q_table = {
+                eval(k): {int(ak): float(av) for ak, av in v.items()}
+                for k, v in serializable_q_table.items()
+            }
 
         #print(f"Caricato q_table da {filename} (dimensione: {len(self.q_table)} stati)")
 
@@ -188,7 +190,8 @@ class Wolf(Animal):
             super().__init__(model)
             self.use_learning = self.model.learning
 
-            self.action_counts = {0: 0, 1: 0, 3: 0}#eliminata azione 2
+
+            self.action_counts = {0: 0, 1: 0, 2: 0, 3: 0}
 
             self.capture_intervals = []
 
@@ -300,14 +303,14 @@ class Wolf(Animal):
         elif action == 1:
             if possible_steps:
                 self.model.grid.move_agent(self, self.random.choice(possible_steps))
-        #elif action == 2:
-        #    self.stayed = True
+        elif action == 2:
+            self.update_pheromone()
         else:
             best_steps = self.get_best_step(possible_steps, pheromones, True, action)
             if best_steps:
                 self.model.grid.move_agent(self, self.random.choice(best_steps))
 
-        self.update_pheromone()#rilascio feromoni anche dopo il movimento
+        #self.update_pheromone()#rilascio feromoni anche dopo il movimento
 
         self.eaten = self.eat_sheep()
 

@@ -62,6 +62,47 @@ def analyze_simulation(df):
     print(sheep_per_iteration.to_string())
 
 
+#def plot_results(df, learning=True, output_dir="./results"):
+#    plt.figure(figsize=(20, 8))
+#    plt.style.use('seaborn-v0_8')
+#
+#    if learning:
+#        reward_stats = df.groupby('iteration')['Reward'].agg(['mean', 'std']).reset_index()
+#        plt.subplot(1, 2, 1)
+#        plt.plot(reward_stats['iteration'], reward_stats['mean'], color='darkblue', linewidth=2.5)
+#        plt.fill_between(reward_stats['iteration'],
+#                         reward_stats['mean'] - reward_stats['std'],
+#                         reward_stats['mean'] + reward_stats['std'],
+#                         color='blue', alpha=0.2)
+#        plt.title('Reward Media', fontsize=16)
+#        plt.xlabel('Iterazione', fontsize=14)
+#        plt.ylabel('Reward', fontsize=14)
+#        plt.grid(True, linestyle='--', alpha=0.6)
+#        plt.locator_params(axis='x', nbins=20)  # Riduci i tick
+#
+#        plt.subplot(1, 2, 2)
+#
+#
+#    sheep_by_run = df.groupby(["run_id", "iteration"])["Sheep_eaten"].sum().reset_index()
+#
+#
+#    sheep_eaten = sheep_by_run.groupby("iteration")["Sheep_eaten"].mean().reset_index()
+#
+#
+#    plt.plot(sheep_eaten['iteration'], sheep_eaten['Sheep_eaten'], color='red', linewidth=2.5)
+#    plt.title('Pecore Mangiate', fontsize=16)
+#    plt.xlabel('Iterazione', fontsize=14)
+#    plt.ylabel('Numero di Pecore', fontsize=14)
+#    plt.grid(True, linestyle='--', alpha=0.6)
+#    plt.xticks(rotation=45)
+#    plt.tight_layout()
+#
+#    if save:
+#        filename = "reward_and_sheep.png" if learning else "sheep_only.png"
+#        plt.savefig(os.path.join(output_dir, filename), dpi=300, bbox_inches='tight')
+#    plt.show()
+#
+#
 def plot_results(df, learning=True, output_dir="./results"):
     plt.figure(figsize=(20, 8))
     plt.style.use('seaborn-v0_8')
@@ -70,24 +111,24 @@ def plot_results(df, learning=True, output_dir="./results"):
         reward_stats = df.groupby('iteration')['Reward'].agg(['mean', 'std']).reset_index()
         plt.subplot(1, 2, 1)
         plt.plot(reward_stats['iteration'], reward_stats['mean'], color='darkblue', linewidth=2.5)
-        plt.fill_between(reward_stats['iteration'],
-                         reward_stats['mean'] - reward_stats['std'],
-                         reward_stats['mean'] + reward_stats['std'],
-                         color='blue', alpha=0.2)
+        if len(df['run_id'].unique()) > 1:  # Solo se ci sono più run
+            plt.fill_between(reward_stats['iteration'],
+                             reward_stats['mean'] - reward_stats['std'],
+                             reward_stats['mean'] + reward_stats['std'],
+                             color='blue', alpha=0.2)
         plt.title('Reward Media', fontsize=16)
         plt.xlabel('Iterazione', fontsize=14)
         plt.ylabel('Reward', fontsize=14)
         plt.grid(True, linestyle='--', alpha=0.6)
-        plt.locator_params(axis='x', nbins=20)  # Riduci i tick
+        plt.locator_params(axis='x', nbins=20)
 
         plt.subplot(1, 2, 2)
 
-
-    sheep_by_run = df.groupby(["run_id", "iteration"])["Sheep_eaten"].sum().reset_index()
-
-
-    sheep_eaten = sheep_by_run.groupby("iteration")["Sheep_eaten"].mean().reset_index()
-
+    # Gestione sia per singola che multipla run
+    if 'run_id' in df.columns:
+        sheep_eaten = df.groupby(["run_id", "iteration"])["Sheep_eaten"].sum().groupby("iteration").mean().reset_index()
+    else:
+        sheep_eaten = df.groupby("iteration")["Sheep_eaten"].sum().reset_index()
 
     plt.plot(sheep_eaten['iteration'], sheep_eaten['Sheep_eaten'], color='red', linewidth=2.5)
     plt.title('Pecore Mangiate', fontsize=16)
@@ -101,24 +142,55 @@ def plot_results(df, learning=True, output_dir="./results"):
         filename = "reward_and_sheep.png" if learning else "sheep_only.png"
         plt.savefig(os.path.join(output_dir, filename), dpi=300, bbox_inches='tight')
     plt.show()
-
+#def plot_simulation_steps(df, output_dir="./results"):
+#
+#    if save:
+#        os.makedirs(output_dir, exist_ok=True)
+#    if "Steps" not in df.columns:
+#        print("La colonna 'Steps' non è disponibile nei dati.")
+#        return
+#
+#    # Calcola il massimo per ogni iteration-run
+#    max_steps_each_run = df.groupby(["run_id", "iteration"])["Steps"].max().reset_index()
+#
+#    # Ora fai la media tra le 5 run per ogni iteration
+#    steps_per_simulation = max_steps_each_run.groupby("iteration")["Steps"].mean().reset_index()
+#
+#    plt.figure(figsize=(10, 5))
+#    plt.plot(steps_per_simulation["iteration"], steps_per_simulation["Steps"],
+#             color="green", linewidth=2.5, marker='^', markersize=6,
+#             label="Numero di Step per Simulazione")
+#    plt.title("Durata delle Simulazioni (in Step)")
+#    plt.xlabel("Numero Simulazione")
+#    plt.ylabel("Numero di Step")
+#    plt.grid(True)
+#    plt.legend()
+#    plt.tight_layout(pad=3)
+#
+#    filepath = os.path.join(output_dir, "steps_plot.png")
+#    if save:
+#        plt.savefig(filepath)
+#        print(f"📈 Grafico steps salvato in: {filepath}")
+#    plt.show()
+#
+#    print("\nAzioni totali per iterazione:")
+#    print(df.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].sum().to_string()) #eliminata azione 2
 
 def plot_simulation_steps(df, output_dir="./results"):
-
     if save:
         os.makedirs(output_dir, exist_ok=True)
     if "Steps" not in df.columns:
         print("La colonna 'Steps' non è disponibile nei dati.")
         return
 
-    # Calcola il massimo per ogni iteration-run
-    max_steps_each_run = df.groupby(["run_id", "iteration"])["Steps"].max().reset_index()
 
-    # Ora fai la media tra le 5 run per ogni iteration
-    steps_per_simulation = max_steps_each_run.groupby("iteration")["Steps"].mean().reset_index()
+    if 'run_id' in df.columns:
+        steps_data = df.groupby(["run_id", "iteration"])["Steps"].max().groupby("iteration").mean().reset_index()
+    else:
+        steps_data = df.groupby("iteration")["Steps"].max().reset_index()
 
     plt.figure(figsize=(10, 5))
-    plt.plot(steps_per_simulation["iteration"], steps_per_simulation["Steps"],
+    plt.plot(steps_data["iteration"], steps_data["Steps"],
              color="green", linewidth=2.5, marker='^', markersize=6,
              label="Numero di Step per Simulazione")
     plt.title("Durata delle Simulazioni (in Step)")
@@ -133,57 +205,84 @@ def plot_simulation_steps(df, output_dir="./results"):
         plt.savefig(filepath)
         print(f"📈 Grafico steps salvato in: {filepath}")
     plt.show()
-
-    print("\nAzioni totali per iterazione:")
-    print(df.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].sum().to_string()) #eliminata azione 2
-
 #def plot_all_actions_in_one(df, output_dir="./results"):
-#    os.makedirs(output_dir, exist_ok=True)
+#    plt.figure(figsize=(20, 10))
+#    plt.style.use('seaborn-v0_8')
 #
-#    actions = ["Follow sheep pheromone", "Random movement", "Stay still", "Walk away wolf pheromone"]
-#    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]  # blu, arancione, verde, rosso
 #
-#    grouped = df.groupby("iteration")[actions].sum().reset_index()
+#    actions = ["Action_0", "Action_1", "Action_3"] #eliminata azione 2
+#    action_labels = ["Follow sheep pheromone", "Random movement", "Walk away wolf pheromone"]
 #
-#    plt.figure(figsize=(10, 6))
+#    colors = ["#1f77b4", "#ff7f0e", "#d62728"]
 #
-#    for action, color in zip(actions, colors):
-#        plt.plot(grouped["iteration"], grouped[action],
-#                 label=f"Azione {action[-1]}",
-#                 linewidth=2.5, marker='o', markersize=5, color=color)
 #
-#    plt.title("Evoluzione dell'Uso delle Azioni", fontsize=15, pad=10)
-#    plt.xlabel("Iterazione", fontsize=12)
-#    plt.ylabel("Conteggio", fontsize=12)
-#    plt.grid(True, linestyle=':', alpha=0.7)
-#    plt.legend(fontsize=10)
+#    actions_per_run = df.groupby(["run_id", "iteration"])[
+#        ["Action_0", "Action_1", "Action_3"]].sum().reset_index()
+#
+#
+#    grouped = actions_per_run.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].mean().reset_index()
+#
+#
+#    for action, label, color in zip(actions,action_labels, colors):
+#        plt.plot(
+#            grouped["iteration"],
+#            grouped[action],
+#            label=label,
+#            linewidth=3,
+#            color=color,
+#            marker='o',
+#            markersize=8,
+#            markeredgecolor='black',
+#            alpha=0.8
+#        )
+#
+#
+#    plt.title("Distribuzione delle Azioni per Iterazione", fontsize=18, pad=20)
+#    plt.xlabel("Iterazione", fontsize=16, labelpad=15)
+#    plt.ylabel("Conteggio Azioni", fontsize=16, labelpad=15)
+#
+#
+#    legend = plt.legend(
+#        title="Azioni",
+#        title_fontsize=14,
+#        fontsize=12,
+#        frameon=True,
+#        shadow=True,
+#        facecolor='white',
+#        edgecolor='gray',
+#        bbox_to_anchor=(1.02, 1),
+#        loc='upper left'
+#    )
+#
+#
+#    plt.grid(True, linestyle='--', alpha=0.6)
+#    plt.xticks(fontsize=12, rotation=45)
+#    plt.yticks(fontsize=12)
+#
+#
 #    plt.tight_layout()
 #
-#    filepath = os.path.join(output_dir, "all_actions_usage.png")
+#
 #    if save:
-#        plt.savefig(filepath)
-#        print(f"📊 Grafico unico azioni salvato in: {filepath}")
+#        filepath = os.path.join(output_dir, "all_actions_usage.png")
+#        plt.savefig(filepath, dpi=300, bbox_inches='tight')
 #    plt.show()
-
+#
 def plot_all_actions_in_one(df, output_dir="./results"):
     plt.figure(figsize=(20, 10))
     plt.style.use('seaborn-v0_8')
 
-
-    actions = ["Action_0", "Action_1", "Action_3"] #eliminata azione 2
-    action_labels = ["Follow sheep pheromone", "Random movement", "Walk away wolf pheromone"]
-
-    colors = ["#1f77b4", "#ff7f0e", "#d62728"]
+    actions = ["Action_0", "Action_1", "Action_2", "Action_3"]
+    action_labels = ["Follow sheep pheromone", "Random movement", "Release pheromone", "Walk away wolf pheromone"]
+    colors = ["#1f77b4", "#ff7f0e",  "#2ca02c", "#d62728"]
 
 
-    actions_per_run = df.groupby(["run_id", "iteration"])[
-        ["Action_0", "Action_1", "Action_3"]].sum().reset_index()
+    if 'run_id' in df.columns:
+        grouped = df.groupby(["run_id", "iteration"])[actions].sum().groupby("iteration").mean().reset_index()
+    else:
+        grouped = df.groupby("iteration")[actions].sum().reset_index()
 
-
-    grouped = actions_per_run.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].mean().reset_index()
-
-
-    for action, label, color in zip(actions,action_labels, colors):
+    for action, label, color in zip(actions, action_labels, colors):
         plt.plot(
             grouped["iteration"],
             grouped[action],
@@ -196,11 +295,9 @@ def plot_all_actions_in_one(df, output_dir="./results"):
             alpha=0.8
         )
 
-
     plt.title("Distribuzione delle Azioni per Iterazione", fontsize=18, pad=20)
     plt.xlabel("Iterazione", fontsize=16, labelpad=15)
     plt.ylabel("Conteggio Azioni", fontsize=16, labelpad=15)
-
 
     legend = plt.legend(
         title="Azioni",
@@ -214,20 +311,45 @@ def plot_all_actions_in_one(df, output_dir="./results"):
         loc='upper left'
     )
 
-
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.xticks(fontsize=12, rotation=45)
     plt.yticks(fontsize=12)
-
-
     plt.tight_layout()
-
 
     if save:
         filepath = os.path.join(output_dir, "all_actions_usage.png")
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
     plt.show()
 
+def plot_capture_median(df, output_dir="./results"):
+    if "Capture_Intervals" not in df.columns:
+        print("⚠️ Colonna 'Capture_Intervals' mancante.")
+        return
+
+    df_valid = df[df["Capture_Intervals"].apply(lambda x: isinstance(x, list) and len(x) > 0)]
+    exploded = df_valid.explode("Capture_Intervals")
+    exploded["Capture_Intervals"] = pd.to_numeric(exploded["Capture_Intervals"], errors="coerce")
+
+    # Gestione sia per singola che multipla run
+    if 'run_id' in df.columns:
+        median_data = exploded.groupby(["run_id", "iteration"])["Capture_Intervals"].median().groupby("iteration").mean().reset_index()
+    else:
+        median_data = exploded.groupby("iteration")["Capture_Intervals"].median().reset_index()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(median_data["iteration"], median_data["Capture_Intervals"],
+             marker='o', color='purple', linewidth=2.5)
+    plt.title("Mediana Step tra Pecore Mangiate", fontsize=16)
+    plt.xlabel("Iterazione", fontsize=14)
+    plt.ylabel("Step tra catture", fontsize=14)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+
+    if save:
+        filepath = os.path.join(output_dir, "capture_median.png")
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        print(f"📈 Grafico mediana catture salvato in: {filepath}")
+    plt.show()
 
 def run_test_simulation(q_table_file="q_table_avg.json", output_dir="./test_results", learning=True):
 
@@ -245,8 +367,8 @@ def run_test_simulation(q_table_file="q_table_avg.json", output_dir="./test_resu
         "q_table_file": q_table_file,
         "learning": learning,
         "testing": True,
-        "max_steps": 100,
-        "respawn": True,
+        "max_steps": 200,
+        "respawn": False,
     }
 
 
@@ -268,70 +390,6 @@ def run_test_simulation(q_table_file="q_table_avg.json", output_dir="./test_resu
     print("✅ Simulazione di test completata!")
 
 
-#if __name__ == "__main__":
-#
-#    q_learning_params = {
-#        "actions": [0, 1, 3], #eliminata azione 2
-#        "alpha": 0.2,
-#        "gamma": 0.9,
-#        "epsilon": 0.5,
-#        "epsilon_decay": 0.975,
-#        "min_epsilon": 0.01
-#    }
-#
-#    testing = False
-#    save = False
-#
-#    params = {"width": 35, "height": 35, "initial_wolves": 5, "initial_sheep": 20, "q_table_file": "q_table.json",
-#              "learning": True, "max_steps": 200, "respawn": False, "diffusion_rate": 0.5, "pheromone_evaporation": 0.1,
-#              "q_learning_params": q_learning_params}
-#
-#
-#    if testing:
-#        run_test_simulation("./results/test36/q_table.json", learning=True)
-#
-#    else:
-#        result = mesa.batch_run(
-#            lambda **kwargs: WolfSheepModel(**kwargs, q_learning_params=q_learning_params),
-#            parameters={k: v for k, v in params.items() if k != "q_learning_params"},
-#            data_collection_period=-1,
-#            iterations=100,
-#            display_progress=True,
-#            number_processes=1
-#        )
-#
-#
-#        df = pd.DataFrame(result)
-#
-#
-#
-#        df = df.dropna(subset=['Sheep_eaten'])
-#
-#        print(df.head)
-#
-#        if "Steps" in df.columns:
-#            print("\nMedia sheep eaten per iterazione:")
-#            print(df.groupby("iteration")["Sheep_eaten"].mean())
-#        else:
-#            print("Colonna 'Steps' non trovata nei dati della simulazione.")
-#
-#
-#
-#        output_dir, abs_output_dir = get_next_test_folder()
-#
-#        #analyze_simulation(df)
-#
-#        print("\nAzioni totali per iterazione:")
-#        print(df.groupby("iteration")[["Action_0", "Action_1", "Action_3"]].sum().to_string())
-#
-#
-#        if save:
-#            save_simulation_metadata(params, q_learning_params, output_dir=output_dir)
-#            save_q_table_to_results(params["q_table_file"], abs_output_dir)
-#
-#        plot_results(df, learning=params["learning"], output_dir=output_dir)
-#        plot_simulation_steps(df, output_dir=output_dir)
-#        plot_all_actions_in_one(df, output_dir=output_dir)
 
 
 def run_single_simulation(run_id, base_params, q_learning_params):
@@ -345,7 +403,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
         lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
         parameters={k: v for k, v in params.items() if k != "q_learning_params"},
         data_collection_period=-1,
-        iterations=3000,
+        iterations=5000,
         number_processes=1,
         display_progress=True
     )
@@ -390,44 +448,42 @@ def clean_up_q_tables(q_table_files, keep_file="q_table_avg.json"):
         except Exception as e:
             print(f"⚠️ Errore nell'eliminazione di {file}: {e}")
 
-def plot_capture_median(df, output_dir="./results"):
-    if "Capture_Intervals" not in df.columns:
-        print("⚠️ Colonna 'Capture_Intervals' mancante.")
-        return
-
-
-    df_valid = df[df["Capture_Intervals"].apply(lambda x: isinstance(x, list) and len(x) > 0)]
-
-
-    exploded = df_valid.explode("Capture_Intervals")
-
-
-    exploded["Capture_Intervals"] = pd.to_numeric(exploded["Capture_Intervals"], errors="coerce")
-
-
-    median_by_iter = exploded.groupby("iteration")["Capture_Intervals"].median().reset_index()
-
-    plt.figure(figsize=(10, 5))
-    plt.plot(median_by_iter["iteration"], median_by_iter["Capture_Intervals"],
-             marker='o', color='purple', linewidth=2.5)
-
-    plt.title("Mediana Step tra Pecore Mangiate", fontsize=16)
-    plt.xlabel("Iterazione", fontsize=14)
-    plt.ylabel("Step tra catture", fontsize=14)
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.tight_layout()
-
-    if save:
-        filepath = os.path.join(output_dir, "capture_median.png")
-        plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        print(f"📈 Grafico mediana catture salvato in: {filepath}")
-    plt.show()
+#def plot_capture_median(df, output_dir="./results"):
+#    if "Capture_Intervals" not in df.columns:
+#        print("⚠️ Colonna 'Capture_Intervals' mancante.")
+#        return
+#
+#
+#    df_valid = df[df["Capture_Intervals"].apply(lambda x: isinstance(x, list) and len(x) > 0)]
+#
+#
+#    exploded = df_valid.explode("Capture_Intervals")
+#
+#
+#    exploded["Capture_Intervals"] = pd.to_numeric(exploded["Capture_Intervals"], errors="coerce")
+#
+#
+#    median_by_iter = exploded.groupby("iteration")["Capture_Intervals"].median().reset_index()
+#
+#    plt.figure(figsize=(10, 5))
+#    plt.plot(median_by_iter["iteration"], median_by_iter["Capture_Intervals"],
+#             marker='o', color='purple', linewidth=2.5)
+#
+#    plt.title("Mediana Step tra Pecore Mangiate", fontsize=16)
+#    plt.xlabel("Iterazione", fontsize=14)
+#    plt.ylabel("Step tra catture", fontsize=14)
+#    plt.grid(True, linestyle='--', alpha=0.6)
+#    plt.tight_layout()
+#
+#    if save:
+#        filepath = os.path.join(output_dir, "capture_median.png")
+#        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+#        print(f"📈 Grafico mediana catture salvato in: {filepath}")
+#    plt.show()
 
 
 
 if __name__ == "__main__":
-
-
 
     num_parallel_runs = 3
 
@@ -441,10 +497,11 @@ if __name__ == "__main__":
         "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
+        "testing": False
     }
 
     q_learning_params = {
-        "actions": [0, 1, 3],
+        "actions": [0, 1, 2, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -456,13 +513,15 @@ if __name__ == "__main__":
 
     all_results = []
     q_tables_paths = []
-    testing = False
     save = True
+    testing = False
 
     if testing:
-        run_test_simulation(learning=False)
+        run_test_simulation("./ServerTest/test8/q_table_avg.json", learning=False)
 
     else:
+
+
         with ProcessPoolExecutor() as executor:
             futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
                        for i in range(num_parallel_runs)]
@@ -479,7 +538,11 @@ if __name__ == "__main__":
 
         df = pd.DataFrame(all_results)
 
-        print(df)
+        print(df['Action_0'])
+        print(df['Action_1'])
+        print(df['Action_2'])
+        print(df['Action_3'])
+
         print(df.dropna(subset=['Capture_Intervals']))
         df = df.dropna(subset=['Sheep_eaten'])
 
@@ -497,10 +560,6 @@ if __name__ == "__main__":
         plot_simulation_steps(df, output_dir=output_dir)
         plot_all_actions_in_one(df, output_dir=output_dir)
         plot_capture_median(df, output_dir=output_dir)
-
-
-
-
 
 
 
