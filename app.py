@@ -40,16 +40,16 @@ def agent_portrayal(agent):
     return portrayal
 
 q_learning_params = {
-        "actions": [0, 1, 3],
-        "alpha": 0.1,
+        "actions": [0, 1, 2, 3],
+        "alpha": 0.01,
         "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.998,
+        "epsilon_decay": 0.9985,
         "min_epsilon": 0.01
     }
 
 
-
+q = QLearning(**q_learning_params, q_table_file="q_table_avg.json")
 
 model_params = {
     "render_pheromone": {
@@ -80,11 +80,11 @@ model_params = {
     "diffusion_rate": Slider("Diffusion Rate", 0.1, 0.01, 1, 0.1, dtype=float),
     "testing": {
         "type": "Select",
-        "value": True,
+        "value": False,
         "values": [True, False],
         "label": "testing?",
     },
-
+    "q_learning": q
 
 
 }

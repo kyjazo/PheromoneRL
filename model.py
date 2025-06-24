@@ -18,9 +18,12 @@ class WolfSheepModel(Model):
     def __init__(self, width=config["grid_width"], height=config["grid_height"], initial_wolves=config["num_wolves"],
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
                  pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table_avg.json", max_steps=200,
-                 diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning=None, testing=False, seed=None):
+                 diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning=None, testing=False,
+                 pheromone_treshold=config["pheromone_treshold"], seed=None):
          super().__init__(seed=seed)
 
+
+         self.pheromone_treshold = pheromone_treshold
          self.testing = testing
          self.q_learning = q_learning
          self.respawn = respawn
@@ -79,7 +82,7 @@ class WolfSheepModel(Model):
     def place_agents(self, agent_class, num_agents):
 
         if agent_class.__name__ == "Wolf":
-            agents = agent_class.create_agents(model=self, n=num_agents, q_table_file=self.q_table_file)
+            agents = agent_class.create_agents(model=self, n=num_agents, q_table_file=self.q_table_file, q_learning=self.q_learning)
 
             center_x, center_y = self.grid.width // 2, self.grid.height // 2
             positions = [(center_x + dx, center_y + dy)
@@ -211,16 +214,29 @@ class WolfSheepModel(Model):
             self.running = False
         else:
 
-            self.agents.shuffle_do("step")
-            self.datacollector.collect(self)
+            wolf_agents = []
+            for agent in self.agents:
+                if isinstance(agent, Sheep):
+                    agent.step()
+                elif isinstance(agent, Wolf):
+                    wolf_agents.append(agent)
+
+            for agent in wolf_agents:
+                agent.step()
 
             if self.render_pheromone:
                 for agent in self.agents:
                     if isinstance(agent, Pheromones):
+                        agent.step()
                         agent.apply_diffusion()
             else:
                 self.evaporate_pheromones()
                 self.diffuse_pheromones()
+
+            #self.agents.shuffle_do("step")
+            self.datacollector.collect(self)
+
+
 
             #self.save_q_tables()
 
