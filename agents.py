@@ -174,9 +174,12 @@ class Animal(Agent):
                 min_pheromone = min(pheromone_concentrations)
                 return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
             elif action == -1:
-                pheromone_differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
-                max_difference = max(pheromone_differences)
-                return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
+                #pheromone_differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
+                #max_difference = max(pheromone_differences)
+                #return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
+                pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
+                max_pheromone = max(pheromone_concentrations)
+                return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == max_pheromone]
 
         else:
             #return [self.random.choice(possible_steps)]
@@ -219,29 +222,20 @@ class Wolf(Animal):
 
             if self.use_learning:
 
-                if self.model.testing:
-
-                    self.q_learning = QLearning()
-                    self.q_learning.load_q_table(model.q_table_file)
-                    self.q_learning.epsilon = 0
-                    self.q_learning.alpha = 0
-
-                elif self.q_learning != None:
+                if self.q_learning != None:
 
                     self.q_learning = QLearning(q_learning=self.model.q_learning,
                                                 q_table_file=q_table_file)
                 else:
+                    self.q_learning = QLearning()
+                    self.q_learning.load_q_table(model.q_table_file)
 
-                    self.q_learning = QLearning(
-                        actions=[0, 1, 3],
-                        alpha=0.2,
-                        gamma=0.95,
-                        epsilon=0.5,
-                        epsilon_decay=0.995,
-                        min_epsilon=0.005,
-                        q_table_file=q_table_file
-                    )
+                if self.model.testing:
 
+                    self.q_learning.epsilon = 0
+                    self.q_learning.alpha = 0
+                    #print("Caricata q table per testing:", q_table_file)
+                    #print("azioni:", self.q_learning.actions)
 
                 self.rewards = []
 
@@ -253,6 +247,10 @@ class Wolf(Animal):
             self.last_sheep_distance = float('inf')
             self.last_action = None
             self.current_action = None
+
+
+            #print("Creato wolf con q learning", self.q_learning.__dict__.items())
+
 
     def __del__(self):
         if self.use_learning and hasattr(self, 'q_table_file') and self.q_table_file:
@@ -283,19 +281,14 @@ class Wolf(Animal):
         return base_reward
     def step(self):
 
-        if not self.q_learning.actions == [0,1,2,3]:
-            #print("rilascio")
+        if not self.use_learning or not self.q_learning.actions == [0, 1, 2, 3]:
+
             self.update_pheromone()
 
-        if(self.stayed):
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False, radius=2
-            )
-            self.stayed = False
-        else:
-            possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False, radius=1
-            )
+
+        possible_steps = self.model.grid.get_neighborhood(
+            self.pos, moore=True, include_center=False, radius=1)
+
 
         pheromones = [
             Pheromone(
@@ -335,7 +328,7 @@ class Wolf(Animal):
             if best_steps:
                 self.model.grid.move_agent(self, self.random.choice(best_steps))
 
-        if not self.q_learning.actions == [0, 1, 2, 3]:
+        if not self.use_learning or not self.q_learning.actions == [0, 1, 2, 3]:
             self.update_pheromone()
 
         self.eaten = self.eat_sheep()

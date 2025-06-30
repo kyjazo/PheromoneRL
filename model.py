@@ -205,6 +205,9 @@ class WolfSheepModel(Model):
             self.q_learning.epsilon = max(self.q_learning.min_epsilon, self.q_learning.epsilon * self.q_learning.epsilon_decay)
     def step(self):
 
+        #print("Step: ", self.steps)
+        #print(self.count_agents(Sheep))
+
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
             if not self.testing:
                 self.decay_epsilon()
@@ -228,7 +231,10 @@ class WolfSheepModel(Model):
                 for agent in self.agents:
                     if isinstance(agent, Pheromones):
                         agent.step()
+                for agent in self.agents:
+                    if isinstance(agent, Pheromones):
                         agent.apply_diffusion()
+
             else:
                 self.evaporate_pheromones()
                 self.diffuse_pheromones()

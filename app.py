@@ -70,6 +70,12 @@ model_params = {
         "values": [True, False],
         "label": "learning?",
     },
+    "testing": {
+        "type": "Select",
+        "value": False,
+        "values": [True, False],
+        "label": "testing?",
+    },
 
     "height": Slider("Height", 45, 5, 100, 5, dtype=int),
     "width": Slider("Width", 45, 5, 100, 5, dtype=int),
@@ -78,12 +84,7 @@ model_params = {
     "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
     "pheromone_added": Slider("Pheromone Released", 0.5, 0, 5, 0.1, dtype=float),
     "diffusion_rate": Slider("Diffusion Rate", 0.1, 0.01, 1, 0.1, dtype=float),
-    "testing": {
-        "type": "Select",
-        "value": False,
-        "values": [True, False],
-        "label": "testing?",
-    },
+
     "q_learning": q
 
 
