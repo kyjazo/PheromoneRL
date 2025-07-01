@@ -1,0 +1,27 @@
+{
+  "simulation_params": {
+    "width": 45,
+    "height": 45,
+    "initial_wolves": 5,
+    "initial_sheep": 20,
+    "learning": true,
+    "max_steps": 200,
+    "respawn": false,
+    "diffusion_rate": 0.5,
+    "pheromone_evaporation": 0.1,
+    "testing": false
+  },
+  "q_learning_params": {
+    "actions": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "alpha": 0.1,
+    "gamma": 0.99,
+    "epsilon": 0.5,
+    "epsilon_decay": 0.9985,
+    "min_epsilon": 0.01
+  }
+}
