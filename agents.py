@@ -36,6 +36,7 @@ class QLearning:
         #print(os.path.exists(q_table_file))
         if q_table_file and os.path.exists(q_table_file):
             self.load_q_table(q_table_file)
+            #print("Ho caricato i pesi del file: ", q_table_file)
 
         #print("Creato q_learning con azioni: ", self.actions)
 
@@ -136,8 +137,10 @@ class Animal(Agent):
     def move(self):
         self.steps += 1
         possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False, radius=self.movement_speed
+            self.pos, moore=True, include_center=True, radius=self.movement_speed,
         )
+        #print("possible_steps", possible_steps)
+
 
         pheromones = [
             Pheromone(
@@ -262,10 +265,12 @@ class Wolf(Animal):
         base_reward = 0
 
         if self.eaten:
+            #print("C'è stata una cattura allo step:", self.model.steps)
 
             base_reward += 10.0
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
+            #print("reward:", base_reward)
             return base_reward
 
         current_dist = self.model.get_closest_sheep_distance(self.pos)
@@ -287,7 +292,7 @@ class Wolf(Animal):
 
 
         possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=False, radius=1)
+            self.pos, moore=True, include_center=True, radius=1)
 
 
         pheromones = [
@@ -351,7 +356,7 @@ class Wolf(Animal):
             self.rewards.append(reward)
 
             next_possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=False
+                self.pos, moore=True, include_center=True
             )
             next_pheromones = [
                 Pheromone(
@@ -435,19 +440,22 @@ class Pheromones(Agent):
         fraction_per_direction = self.model.diffusion_rate / len(directions)
 
         for dx, dy in directions:
-            nx, ny = (self.pos[0] + dx) % self.model.grid.width, (self.pos[1] + dy) % self.model.grid.height
-            neighbors = self.model.grid.get_cell_list_contents((nx, ny))
-            for neighbor in neighbors:
-                if isinstance(neighbor, Pheromones):
+            #nx, ny = (self.pos[0] + dx) % self.model.grid.width, (self.pos[1] + dy) % self.model.grid.height
+            nx, ny = self.pos[0] + dx, self.pos[1] + dy
 
-                    wolf_diffused = self.pheromone.wolf_concentration * fraction_per_direction
-                    sheep_diffused = self.pheromone.sheep_concentration * fraction_per_direction
+            if 0 <= nx < self.model.grid.width and 0 <= ny < self.model.grid.height:
+                neighbors = self.model.grid.get_cell_list_contents((nx, ny))
+                for neighbor in neighbors:
+                    if isinstance(neighbor, Pheromones):
 
-                    neighbor.next_wolf += wolf_diffused
-                    neighbor.next_sheep += sheep_diffused
+                        wolf_diffused = self.pheromone.wolf_concentration * fraction_per_direction
+                        sheep_diffused = self.pheromone.sheep_concentration * fraction_per_direction
 
-                    self.next_wolf -= wolf_diffused
-                    self.next_sheep -= sheep_diffused
+                        neighbor.next_wolf += wolf_diffused
+                        neighbor.next_sheep += sheep_diffused
+
+                        self.next_wolf -= wolf_diffused
+                        self.next_sheep -= sheep_diffused
 
     def apply_diffusion(self):
         #print("faccio diffusione, ", self.next_sheep)

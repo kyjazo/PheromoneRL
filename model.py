@@ -19,10 +19,10 @@ class WolfSheepModel(Model):
                  initial_sheep=config["num_sheep"], pheromone_evaporation=config["pheromone_evaporation"],
                  pheromone_added=config["pheromone_added"], render_pheromone=False,  q_table_file="q_table_avg.json", max_steps=200,
                  diffusion_rate=config["diffusion_rate"], respawn=True, learning=True, q_learning=None, testing=False,
-                 pheromone_treshold=config["pheromone_treshold"], seed=None):
+                 pheromone_treshold=config["pheromone_treshold"], torus=config["torus"], seed=None):
          super().__init__(seed=seed)
 
-
+         self.torus = torus
          self.pheromone_treshold = pheromone_treshold
          self.testing = testing
          self.q_learning = q_learning
@@ -38,7 +38,7 @@ class WolfSheepModel(Model):
                                                     default_value=0.0)
          self.pheromone_evaporation = pheromone_evaporation
          self.pheromone_added = pheromone_added
-         self.grid = MultiGrid(width, height, torus=True)
+         self.grid = MultiGrid(width, height, torus=False)
          self.running = True
 
          self.datacollector = DataCollector(
@@ -183,16 +183,25 @@ class WolfSheepModel(Model):
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
 
-                    nx = nx % self.grid.width
-                    ny = ny % self.grid.height
+                    #nx = nx % self.grid.width
+                    #ny = ny % self.grid.height
+#
+                    #wolf_diffused = current_wolf * fraction_per_direction
+                    #sheep_diffused = current_sheep * fraction_per_direction
+#
+                    #new_wolf[nx, ny] += wolf_diffused
+                    #new_sheep[nx, ny] += sheep_diffused
+                    #total_diffused_wolf += wolf_diffused
+                    #total_diffused_sheep += sheep_diffused
+                    # Controlla se nx, ny sono dentro i limiti della griglia
+                    if 0 <= nx < self.grid.width and 0 <= ny < self.grid.height:
+                        wolf_diffused = current_wolf * fraction_per_direction
+                        sheep_diffused = current_sheep * fraction_per_direction
 
-                    wolf_diffused = current_wolf * fraction_per_direction
-                    sheep_diffused = current_sheep * fraction_per_direction
-
-                    new_wolf[nx, ny] += wolf_diffused
-                    new_sheep[nx, ny] += sheep_diffused
-                    total_diffused_wolf += wolf_diffused
-                    total_diffused_sheep += sheep_diffused
+                        new_wolf[nx, ny] += wolf_diffused
+                        new_sheep[nx, ny] += sheep_diffused
+                        total_diffused_wolf += wolf_diffused
+                        total_diffused_sheep += sheep_diffused
 
                 new_wolf[x, y] -= total_diffused_wolf
                 new_sheep[x, y] -= total_diffused_sheep

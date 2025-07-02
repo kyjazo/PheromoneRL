@@ -289,7 +289,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
             parameters={k: v for k, v in params.items() if k != "q_learning_params"},
             data_collection_period=-1,
-            iterations=200,
+            iterations=5000,
             number_processes=1,
             display_progress=True
         )
@@ -351,7 +351,7 @@ if __name__ == "__main__":
     base_params = {
         "width": 45,
         "height": 45,
-        "initial_wolves": 5,
+        "initial_wolves": 10,
         "initial_sheep": 20,
         "learning": True,
         "max_steps": 200,
@@ -359,7 +359,7 @@ if __name__ == "__main__":
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
         "testing": False,
-        "q_table_file": "./ServerTest/test12/q_table_avg.json"
+        "q_table_file": "./ServerTest/test14/q_table_avg.json"
     }
 
     q_learning_params = {
@@ -395,8 +395,13 @@ if __name__ == "__main__":
         clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
     df = pd.DataFrame(all_results)
 
+
     print(df.dropna(subset=['Capture_Intervals']))
     df = df.dropna(subset=['Sheep_eaten'])
+
+    #print(df['Reward'])
+    #df['Reward'].to_csv("dataframe.csv")
+
     output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
     if save:
         save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
