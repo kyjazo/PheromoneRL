@@ -281,7 +281,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             params["q_table_file"] = q_table_file
             q = QLearning(**q_learning_params, q_table_file=q_table_file)
         else:
-            q_table_file = f"q_table_run_{run_id}.json"
+            q_table_file = params['q_table_file']
             q = QLearning(**q_learning_params, q_table_file=params['q_table_file'])
 
 
@@ -289,7 +289,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
             parameters={k: v for k, v in params.items() if k != "q_learning_params"},
             data_collection_period=-1,
-            iterations=5000,
+            iterations=3000,
             number_processes=1,
             display_progress=True
         )
@@ -367,7 +367,7 @@ if __name__ == "__main__":
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.9985,
+        "epsilon_decay": 0.9965,
         "min_epsilon": 0.01
     }
 
@@ -383,7 +383,9 @@ if __name__ == "__main__":
                    for i in range(num_parallel_runs)]
 
         for i, future in enumerate(as_completed(futures)):
+
             sim_result, q_table_file = future.result()
+
             for r in sim_result:
                 r["run_id"] = i
             all_results.extend(sim_result)

@@ -137,7 +137,7 @@ class Animal(Agent):
     def move(self):
         self.steps += 1
         possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=True, radius=self.movement_speed,
+            self.pos, moore=True, include_center=False, radius=self.movement_speed,
         )
         #print("possible_steps", possible_steps)
 
@@ -156,6 +156,52 @@ class Animal(Agent):
         best_steps = self.get_best_step(possible_steps, pheromones, isinstance(self, Wolf))
         self.model.grid.move_agent(self, self.random.choice(best_steps))
 
+    def calculate_direction(self, possible_steps, pheromones, phi):
+        sheep_ph = [ph.sheep_concentration for ph in pheromones]
+        max_sheep_idx = np.argmax(sheep_ph)
+        max_sheep_pos = possible_steps[max_sheep_idx]
+        #print("pos con max sheep pheromone", max_sheep_pos)
+
+        wolf_ph = [ph.wolf_concentration for ph in pheromones]
+        max_wolf_idx = np.argmax(wolf_ph)
+        max_wolf_pos = possible_steps[max_wolf_idx]
+        #print("pos con max wolf pheromone", max_sheep_pos)
+
+        current_pos = np.array(self.pos)
+        #print("current_pos", current_pos)
+        sheep_vec = np.array(max_sheep_pos) - current_pos
+        #print("sheep_vec", sheep_vec)
+        wolf_vec = np.array(max_wolf_pos) - current_pos
+        #print("wolf_vec", wolf_vec)
+
+        # Calcolo della direzione combinata: avvicinati alle pecore, allontanati dai lupi
+        combined_vec = phi * sheep_vec - (1 - phi) * wolf_vec
+        #print("combined_vec", combined_vec)
+        if np.linalg.norm(combined_vec) == 0:
+            return self.random.choice(possible_steps)
+
+        combined_vec_normalized = combined_vec / np.linalg.norm(combined_vec)
+        #print("combined_vec_normalized", combined_vec_normalized)
+        # Scegli la cella più allineata al vettore risultante
+        best_step = None
+        best_alignment = -float('inf')
+
+        for step in possible_steps:
+            step_vec = np.array(step) - current_pos
+            if np.linalg.norm(step_vec) == 0:
+                continue
+            step_vec_normalized = step_vec / np.linalg.norm(step_vec)
+
+            alignment = np.dot(combined_vec_normalized, step_vec_normalized)
+
+            if alignment > best_alignment:
+                best_alignment = alignment
+                best_step = step
+
+
+        #print("best_step", best_step)
+        return best_step if best_step is not None else self.random.choice(possible_steps)
+
     def get_best_step(self, possible_steps, pheromones, is_wolf, action=None):
 
         threshold = self.model.pheromone_treshold
@@ -169,9 +215,22 @@ class Animal(Agent):
 
         if is_wolf:
             if action == 0:
-                pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
-                max_pheromone = max(pheromone_concentrations)
-                return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == max_pheromone]
+
+                max_sheep_ph = max(ph.sheep_concentration for ph in pheromones)
+                max_wolf_ph = max(ph.wolf_concentration for ph in pheromones)
+
+
+                if max_sheep_ph >= self.treshold_sheep and max_wolf_ph >= self.treshold_wolf:
+                    #print("Considero entrambi i feromoni allo step: ", self.model.steps)
+
+                    best_step = self.calculate_direction(possible_steps, pheromones, self.phi)
+                    return [best_step]
+                else:
+
+                    pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
+                    max_pheromone = max(pheromone_concentrations)
+                    return [step for step, conc in zip(possible_steps, pheromone_concentrations) if
+                            conc == max_pheromone]
             elif action == 3:
                 pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
                 min_pheromone = min(pheromone_concentrations)
@@ -218,6 +277,11 @@ class Wolf(Animal):
             super().__init__(model)
             self.use_learning = self.model.learning
             self.q_learning = q_learning
+
+
+            self.treshold_sheep = 0.0001
+            self.treshold_wolf = 0.057
+            self.phi = 0.5
 
             self.action_counts = {0: 0, 1: 0, 2: 0, 3: 0}
 
@@ -292,7 +356,7 @@ class Wolf(Animal):
 
 
         possible_steps = self.model.grid.get_neighborhood(
-            self.pos, moore=True, include_center=True, radius=1)
+            self.pos, moore=True, include_center=False, radius=1)
 
 
         pheromones = [
@@ -356,7 +420,7 @@ class Wolf(Animal):
             self.rewards.append(reward)
 
             next_possible_steps = self.model.grid.get_neighborhood(
-                self.pos, moore=True, include_center=True
+                self.pos, moore=True, include_center=False
             )
             next_pheromones = [
                 Pheromone(

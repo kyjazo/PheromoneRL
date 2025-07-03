@@ -40,13 +40,14 @@ def agent_portrayal(agent):
     return portrayal
 
 q_learning_params = {
-        "actions": [0, 1, 2, 3],
+        "actions": [0, 1, 3],
         "alpha": 0.01,
         "gamma": 0.99,
         "epsilon": 0.5,
         "epsilon_decay": 0.9985,
         "min_epsilon": 0.01
     }
+
 
 
 q = QLearning(**q_learning_params, q_table_file="q_table_avg.json")
