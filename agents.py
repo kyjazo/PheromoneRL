@@ -13,7 +13,7 @@ class Pheromone:
 
 
 class QLearning:
-    def __init__(self, actions=[0, 1, 2, 3], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01,
+    def __init__(self, actions=[0, 1, 2, 3, 4, 5], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01,
                  q_table_file=None, q_learning=None):
         if q_learning:
             self.actions = q_learning.actions
@@ -70,7 +70,6 @@ class QLearning:
         #print(f"Caricato q_table da {filename} (dimensione: {len(self.q_table)} stati)")
 
     def get_state(self, wolf, pheromones, sheep_present):
-
         threshold = wolf.model.pheromone_treshold
         filtered_pheromones = []
         for ph in pheromones:
@@ -81,10 +80,18 @@ class QLearning:
         pheromones = filtered_pheromones
 
 
+        possible_steps = wolf.model.grid.get_neighborhood(
+            wolf.pos, moore=True, include_center=False, radius=1)
+        wolf_present = any(
+            any(isinstance(obj, Wolf) for obj in wolf.model.grid.get_cell_list_contents(step))
+            for step in possible_steps
+        )
+
         differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
         max_index = int(np.argmax(differences))
 
         sheep_presence = int(sheep_present)
+        wolf_presence = int(wolf_present)
 
         closest_dist = wolf.model.get_closest_sheep_distance(wolf.pos)
         if closest_dist <= 1.5:
@@ -96,7 +103,7 @@ class QLearning:
         else:
             dist_category = 3
 
-        return (max_index, sheep_presence, dist_category)
+        return (max_index, sheep_presence, wolf_presence, dist_category)
     def choose_action(self, state):
 
         if state not in self.q_table:
@@ -235,6 +242,18 @@ class Animal(Agent):
                 pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
                 min_pheromone = min(pheromone_concentrations)
                 return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
+
+            elif action == 4: #follow + deposit
+                self.update_pheromone()
+                pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
+                max_pheromone = max(pheromone_concentrations)
+                return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == max_pheromone]
+
+            elif action == 5: #runaway + deposit
+                self.update_pheromone()
+                pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+                min_pheromone = min(pheromone_concentrations)
+                return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
             elif action == -1:
                 #pheromone_differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
                 #max_difference = max(pheromone_differences)
@@ -283,7 +302,7 @@ class Wolf(Animal):
             self.treshold_wolf = 0.057
             self.phi = 0.5
 
-            self.action_counts = {0: 0, 1: 0, 2: 0, 3: 0}
+            self.action_counts = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
 
             self.capture_intervals = []
 
@@ -350,7 +369,7 @@ class Wolf(Animal):
         return base_reward
     def step(self):
 
-        if not self.use_learning or not self.q_learning.actions == [0, 1, 2, 3]:
+        if not self.use_learning or self.q_learning.actions == [0, 1, 3]:
 
             self.update_pheromone()
 
@@ -392,12 +411,17 @@ class Wolf(Animal):
                 self.model.grid.move_agent(self, self.random.choice(possible_steps))
         elif action == 2:
             self.update_pheromone()
+        if action == 4 or action == 5:
+            best_steps = self.get_best_step(possible_steps, pheromones, True, action)
+            if best_steps:
+                self.model.grid.move_agent(self, self.random.choice(best_steps))
+            self.update_pheromone()#rilascio prima e dopo il movimento
         else:
             best_steps = self.get_best_step(possible_steps, pheromones, True, action)
             if best_steps:
                 self.model.grid.move_agent(self, self.random.choice(best_steps))
 
-        if not self.use_learning or not self.q_learning.actions == [0, 1, 2, 3]:
+        if not self.use_learning or self.q_learning.actions == [0, 1, 3]:
             self.update_pheromone()
 
         self.eaten = self.eat_sheep()

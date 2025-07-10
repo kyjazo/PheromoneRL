@@ -83,60 +83,60 @@ def analyze_simulation(df):
     print(sheep_per_iteration.to_string())
 
 
-#def plot_results(df, learning=True, output_dir="./results", window_size=100):
-#    plt.figure(figsize=(20, 8))
-#    plt.style.use('seaborn-v0_8')
-#    window_size = window_size
-#
-#    if learning:
-#        reward_stats = df.groupby('iteration')['Reward'].agg(['mean', 'std']).reset_index()
-#        reward_stats['mean_rolling'] = reward_stats['mean'].rolling(window=window_size).mean()
-#
-#        plt.subplot(1, 2, 1)
-#        plt.plot(reward_stats['iteration'], reward_stats['mean_rolling'],
-#                 color='darkblue', linewidth=2.5)
-#
-#        if 'run_id' in df.columns and len(df['run_id'].unique()) > 1:
-#            reward_stats['std_rolling'] = reward_stats['std'].rolling(window=window_size).mean()
-#            plt.fill_between(reward_stats['iteration'],
-#                             reward_stats['mean_rolling'] - reward_stats['std_rolling'],
-#                             reward_stats['mean_rolling'] + reward_stats['std_rolling'],
-#                             color='blue', alpha=0.2)
-#
-#        plt.title(f'Average reward (rolling mean {window_size})', fontsize=16)
-#        plt.xlabel('Episode', fontsize=14)
-#        plt.ylabel('Reward', fontsize=14)
-#        plt.grid(True, linestyle='--', alpha=0.6)
-#        plt.locator_params(axis='x', nbins=20)
-#        plt.subplot(1, 2, 2)
-#
-#    if 'run_id' in df.columns:
-#        sheep_by_run = df.groupby(["run_id", "iteration"])["Sheep_eaten"].sum().reset_index()
-#        sheep_stats = sheep_by_run.groupby("iteration")["Sheep_eaten"].agg(["mean", "std"]).reset_index()
-#    else:
-#        sheep_stats = df.groupby("iteration")["Sheep_eaten"].agg(["mean"]).reset_index()
-#        sheep_stats["std"] = 0
-#
-#    sheep_stats['mean_rolling'] = sheep_stats['mean'].rolling(window=window_size).mean()
-#    sheep_stats['std_rolling'] = sheep_stats['std'].rolling(window=window_size).mean()
-#
-#    plt.plot(sheep_stats['iteration'], sheep_stats['mean_rolling'],
-#             color='red', linewidth=2.5)
-#    plt.fill_between(sheep_stats['iteration'],
-#                     sheep_stats['mean_rolling'] - sheep_stats['std_rolling'],
-#                     sheep_stats['mean_rolling'] + sheep_stats['std_rolling'],
-#                     color='red', alpha=0.2)
-#    plt.title(f'Sheep Eaten (rolling mean {window_size})', fontsize=16)
-#    plt.xlabel('Episode', fontsize=14)
-#    plt.ylabel('Number of Sheep', fontsize=14)
-#    plt.grid(True, linestyle='--', alpha=0.6)
-#    plt.xticks(rotation=45)
-#    plt.tight_layout()
-#
-#    if save:
-#        filename = f"reward_and_sheep_rolling{window_size}.png" if learning else f"sheep_only_rolling{window_size}.png"
-#        plt.savefig(os.path.join(output_dir, filename), dpi=300, bbox_inches='tight')
-#    plt.show()
+def plot_results(df, learning=True, output_dir="./results", window_size=100):
+    plt.figure(figsize=(20, 8))
+    plt.style.use('seaborn-v0_8')
+    window_size = window_size
+
+    if learning:
+        reward_stats = df.groupby('iteration')['Reward'].agg(['mean', 'std']).reset_index()
+        reward_stats['mean_rolling'] = reward_stats['mean'].rolling(window=window_size).mean()
+
+        plt.subplot(1, 2, 1)
+        plt.plot(reward_stats['iteration'], reward_stats['mean_rolling'],
+                 color='darkblue', linewidth=2.5)
+
+        if 'run_id' in df.columns and len(df['run_id'].unique()) > 1:
+            reward_stats['std_rolling'] = reward_stats['std'].rolling(window=window_size).mean()
+            plt.fill_between(reward_stats['iteration'],
+                             reward_stats['mean_rolling'] - reward_stats['std_rolling'],
+                             reward_stats['mean_rolling'] + reward_stats['std_rolling'],
+                             color='blue', alpha=0.2)
+
+        plt.title(f'Average reward (rolling mean {window_size})', fontsize=16)
+        plt.xlabel('Episode', fontsize=14)
+        plt.ylabel('Reward', fontsize=14)
+        plt.grid(True, linestyle='--', alpha=0.6)
+        plt.locator_params(axis='x', nbins=20)
+        plt.subplot(1, 2, 2)
+
+    if 'run_id' in df.columns:
+        sheep_by_run = df.groupby(["run_id", "iteration"])["Sheep_eaten"].sum().reset_index()
+        sheep_stats = sheep_by_run.groupby("iteration")["Sheep_eaten"].agg(["mean", "std"]).reset_index()
+    else:
+        sheep_stats = df.groupby("iteration")["Sheep_eaten"].agg(["mean"]).reset_index()
+        sheep_stats["std"] = 0
+
+    sheep_stats['mean_rolling'] = sheep_stats['mean'].rolling(window=window_size).mean()
+    sheep_stats['std_rolling'] = sheep_stats['std'].rolling(window=window_size).mean()
+
+    plt.plot(sheep_stats['iteration'], sheep_stats['mean_rolling'],
+             color='red', linewidth=2.5)
+    plt.fill_between(sheep_stats['iteration'],
+                     sheep_stats['mean_rolling'] - sheep_stats['std_rolling'],
+                     sheep_stats['mean_rolling'] + sheep_stats['std_rolling'],
+                     color='red', alpha=0.2)
+    plt.title(f'Sheep Eaten (rolling mean {window_size})', fontsize=16)
+    plt.xlabel('Episode', fontsize=14)
+    plt.ylabel('Number of Sheep', fontsize=14)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    if save:
+        filename = f"reward_and_sheep_rolling{window_size}.png" if learning else f"sheep_only_rolling{window_size}.png"
+        plt.savefig(os.path.join(output_dir, filename), dpi=300, bbox_inches='tight')
+    plt.show()
 def plot_reward(df, output_dir="./results", window_size=100):
     if "Reward" not in df.columns:
         print("⚠️ 'Reward' column not found.")
@@ -253,9 +253,10 @@ def plot_all_actions_in_one(df, output_dir="./results", window_size=100):
     plt.figure(figsize=(20, 10))
     plt.style.use('seaborn-v0_8')
 
-    actions = ["Action_0", "Action_1", "Action_2", "Action_3"]
-    action_labels = ["Follow sheep pheromone", "Random movement", "Release pheromone", "Walk away wolf pheromone"]
-    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+    actions = ["Action_0", "Action_1", "Action_2", "Action_3","Action_4", "Action_5"]
+    action_labels = ["Follow sheep pheromone", "Random movement", "Release pheromone", "Run away wolf pheromone",
+                     "Follow + Deposit", "Run away + Deposit"]
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
 
     window_size = window_size
 
@@ -489,7 +490,7 @@ if __name__ == "__main__":
 
     multiprocessing.set_start_method("spawn", force=True)
 
-    num_parallel_runs = 3
+    num_parallel_runs = 2
 
     base_params = {
         "width": 45,
@@ -506,7 +507,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 3],
+        "actions": [0, 1, 2, 3, 4, 5],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -575,6 +576,7 @@ if __name__ == "__main__":
 
         #plot_results(df, learning=True, output_dir=output_dir, window_size=100)
         window_size = 100
+        plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
         plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)
         plot_simulation_steps(df, output_dir=output_dir, window_size=window_size)
