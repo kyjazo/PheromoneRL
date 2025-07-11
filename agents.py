@@ -346,6 +346,13 @@ class Wolf(Animal):
     def calculate_reward(self):
 
         base_reward = 0
+        #Se ci sono due lupi nella stessa posizione diamo una penalità
+        cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
+                       if isinstance(agent, Wolf) and agent != self]
+
+        if cell_wolves:
+            print("Penalità collisione")
+            base_reward -= 5# * len(cell_wolves)
 
         if self.eaten:
             #print("C'è stata una cattura allo step:", self.model.steps)
