@@ -351,7 +351,7 @@ class Wolf(Animal):
                        if isinstance(agent, Wolf) and agent != self]
 
         if cell_wolves:
-            print("Penalità collisione")
+            #print("Penalità collisione")
             base_reward -= 5# * len(cell_wolves)
 
         if self.eaten:

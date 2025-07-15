@@ -359,12 +359,24 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
             parameters={k: v for k, v in params.items() if k != "q_learning_params"},
             data_collection_period=-1,
-            iterations=3000,
+            iterations=5000,
             number_processes=1,
             display_progress=True
         )
+        agent_reporters = [
+            "iteration","Steps", "Sheep_eaten", "Reward",
+            "Action_0", "Action_1", "Action_2",
+            "Action_3", "Action_4", "Action_5",
+            "Capture_Intervals"
+        ]
 
-        return result, q_table_file
+
+        filtered_result = [
+            {k: v for k, v in r.items() if k in agent_reporters or k == "run_id"}
+            for r in result
+        ]
+
+        return filtered_result, q_table_file
 
     except Exception as e:
         import traceback
@@ -490,7 +502,7 @@ if __name__ == "__main__":
 
     multiprocessing.set_start_method("spawn", force=True)
 
-    num_parallel_runs = 2
+    num_parallel_runs = 3
 
     base_params = {
         "width": 45,
@@ -511,7 +523,7 @@ if __name__ == "__main__":
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
-        "epsilon_decay": 0.9965,
+        "epsilon_decay": 0.9985,
         "min_epsilon": 0.01
     }
 
@@ -556,11 +568,8 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("⛔ Interrotto dall'utente.")
-    finally:
-        print("🧹 Pulizia completata. Nessun semaforo dovrebbe rimanere.")
-        multiprocessing.active_children()  # forza chiusura di eventuali figli zombie
 
-    # Dopo tutte le simulazioni:
+
     if all_results:
         if base_params['learning'] and not base_params['testing']:
             merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
@@ -574,7 +583,7 @@ if __name__ == "__main__":
             save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
             save_q_table_to_results("q_table_avg.json", abs_output_dir)
 
-        #plot_results(df, learning=True, output_dir=output_dir, window_size=100)
+
         window_size = 100
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
