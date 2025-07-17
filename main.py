@@ -339,19 +339,8 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
-@profile
-def run_single_simulation(run_id, base_params, q_learning_params):
-    import cProfile
-    import pstats
-    import io
-    import memory_profiler
-    from memory_profiler import profile
-    import time
 
-    # Avvia il memory profiler per questa funzione
-    mem_usage_before = memory_profiler.memory_usage()[0]
-    profiler = cProfile.Profile()
-    profiler.enable()
+def run_single_simulation(run_id, base_params, q_learning_params):
 
     try:
 
@@ -370,7 +359,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
             parameters={k: v for k, v in params.items() if k != "q_learning_params"},
             data_collection_period=-1,
-            iterations=100,
+            iterations=3000,
             number_processes=1,
             display_progress=True
         )
@@ -386,20 +375,12 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             {k: v for k, v in r.items() if k in agent_reporters or k == "run_id"}
             for r in result
         ]
+    except:
+        print("Errore")
 
-        return filtered_result, q_table_file
+    return filtered_result, q_table_file
 
-    finally:
-        # Fine del profiling
-        profiler.disable()
-        mem_usage_after = memory_profiler.memory_usage()[0]
-        # Salva i risultati del profiling per questa esecuzione
-        s = io.StringIO()
-        ps = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
-        ps.print_stats()
-        with open(f'profile_run_{run_id}.txt', 'w') as f:
-            f.write(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB\n")
-            f.write(s.getvalue())
+
 
 def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
     combined_q_table = {}
@@ -464,7 +445,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 3],
+        "actions": [0, 1, 2, 3, 4, 5],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -525,7 +506,7 @@ if __name__ == "__main__":
             save_q_table_to_results("q_table_avg.json", abs_output_dir)
 
 
-        window_size = 1
+        window_size = 100
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
         plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)
