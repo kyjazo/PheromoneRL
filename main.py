@@ -3,14 +3,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from model import WolfSheepModel
 import os
-import numpy as np
 import json
 from datetime import datetime
 import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from functools import partial
 from agents import QLearning
 import multiprocessing
+from memory_profiler import profile
 
 
 
@@ -25,9 +24,9 @@ def save_q_table_to_results(q_table_file, output_dir):
     else:
         print("⚠️ File Q-table non trovato, nessuna copia effettuata")
 def get_next_test_folder(testing=False, learning=False, prefix="test"):
-    global save  # Se stai usando `save` come variabile globale
+    global save
 
-    # Determina la cartella base corretta
+
     if testing and learning:
         base_dir = "test_results"
     elif testing and not learning:
@@ -37,17 +36,17 @@ def get_next_test_folder(testing=False, learning=False, prefix="test"):
 
     os.makedirs(base_dir, exist_ok=True)
 
-    # Ottieni tutte le directory che iniziano con il prefisso
+
     existing = [
         d for d in os.listdir(base_dir)
         if isinstance(d, str) and os.path.isdir(os.path.join(base_dir, d)) and d.startswith(str(prefix))
     ]
 
-    # Estrai il numero dopo il prefisso, se presente
+
     numbers = [int(d[len(prefix):]) for d in existing if d[len(prefix):].isdigit()]
     next_number = max(numbers) + 1 if numbers else 1
 
-    # Costruisci il nuovo percorso
+
     new_folder = os.path.join(base_dir, f"{prefix}{next_number}")
     if save:
         os.makedirs(new_folder)
@@ -340,8 +339,20 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
-
+@profile
 def run_single_simulation(run_id, base_params, q_learning_params):
+    import cProfile
+    import pstats
+    import io
+    import memory_profiler
+    from memory_profiler import profile
+    import time
+
+    # Avvia il memory profiler per questa funzione
+    mem_usage_before = memory_profiler.memory_usage()[0]
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     try:
 
         params = base_params.copy()
@@ -359,12 +370,12 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
             parameters={k: v for k, v in params.items() if k != "q_learning_params"},
             data_collection_period=-1,
-            iterations=5000,
+            iterations=100,
             number_processes=1,
             display_progress=True
         )
         agent_reporters = [
-            "iteration","Steps", "Sheep_eaten", "Reward",
+            "iteration", "Steps", "Sheep_eaten", "Reward",
             "Action_0", "Action_1", "Action_2",
             "Action_3", "Action_4", "Action_5",
             "Capture_Intervals"
@@ -378,10 +389,17 @@ def run_single_simulation(run_id, base_params, q_learning_params):
 
         return filtered_result, q_table_file
 
-    except Exception as e:
-        import traceback
-        print(f"Errore nella simulazione {run_id}:\n", traceback.format_exc())
-        raise
+    finally:
+        # Fine del profiling
+        profiler.disable()
+        mem_usage_after = memory_profiler.memory_usage()[0]
+        # Salva i risultati del profiling per questa esecuzione
+        s = io.StringIO()
+        ps = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
+        ps.print_stats()
+        with open(f'profile_run_{run_id}.txt', 'w') as f:
+            f.write(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB\n")
+            f.write(s.getvalue())
 
 def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
     combined_q_table = {}
@@ -424,81 +442,8 @@ def clean_up_q_tables(q_table_files, keep_file="q_table_avg.json"):
 
 
 
-#if __name__ == "__main__":
-#
-#    multiprocessing.set_start_method("spawn", force=True)
-#
-#    num_parallel_runs = 3
-#
-#    base_params = {
-#        "width": 45,
-#        "height": 45,
-#        "initial_wolves": 10,
-#        "initial_sheep": 20,
-#        "learning": True,
-#        "max_steps": 200,
-#        "respawn": False,
-#        "diffusion_rate": 0.5,
-#        "pheromone_evaporation": 0.1,
-#        "testing": False,
-#        "q_table_file": "./ServerTest/test14/q_table_avg.json"
-#    }
-#
-#    q_learning_params = {
-#        "actions": [0, 1, 3],
-#        "alpha": 0.1,
-#        "gamma": 0.99,
-#        "epsilon": 0.5,
-#        "epsilon_decay": 0.9965,
-#        "min_epsilon": 0.01
-#    }
-#
-#
-#
-#    all_results = []
-#    q_tables_paths = []
-#    save = True
-#
-#
-#    with ProcessPoolExecutor() as executor:
-#        futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
-#                   for i in range(num_parallel_runs)]
-#
-#        for i, future in enumerate(as_completed(futures)):
-#
-#            sim_result, q_table_file = future.result()
-#
-#            for r in sim_result:
-#                r["run_id"] = i
-#            all_results.extend(sim_result)
-#            if base_params['learning'] and not base_params['testing']:
-#                q_tables_paths.append(q_table_file)
-#
-#    if base_params['learning'] and not base_params['testing']:
-#        merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
-#        clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
-#    df = pd.DataFrame(all_results)
-#
-#
-#    print(df.dropna(subset=['Capture_Intervals']))
-#    df = df.dropna(subset=['Sheep_eaten'])
-#
-#    #print(df['Reward'])
-#    #df['Reward'].to_csv("dataframe.csv")
-#
-#    output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
-#    if save:
-#        save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
-#        save_q_table_to_results("q_table_avg.json", abs_output_dir)
-#    plot_results(df, learning=True, output_dir=output_dir, window_size=100)
-#    plot_simulation_steps(df, output_dir=output_dir, window_size=100)
-#    plot_all_actions_in_one(df, output_dir=output_dir, window_size=100)
-#    plot_capture_median(df, output_dir=output_dir, window_size=100)
-#
-
 if __name__ == "__main__":
-    import multiprocessing
-    import signal
+
 
     multiprocessing.set_start_method("spawn", force=True)
 
@@ -509,17 +454,17 @@ if __name__ == "__main__":
         "height": 45,
         "initial_wolves": 10,
         "initial_sheep": 20,
-        "learning": True,
+        "learning": False,
         "max_steps": 200,
         "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
-        "testing": False,
+        "testing": True,
         "q_table_file": "./ServerTest/test14/q_table_avg.json"
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3, 4, 5],
+        "actions": [0, 1, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -532,16 +477,10 @@ if __name__ == "__main__":
     partial_results_file = "partial_results.csv"
     save = True
 
-    # Cleanup file parziale se esiste
+
     if os.path.exists(partial_results_file):
         os.remove(partial_results_file)
 
-    def graceful_shutdown(signum, frame):
-        print("⚠️ Intercettato segnale di terminazione. Uscita sicura.")
-        exit(0)
-
-    signal.signal(signal.SIGTERM, graceful_shutdown)
-    signal.signal(signal.SIGINT, graceful_shutdown)
 
     try:
         with ProcessPoolExecutor(max_workers=num_parallel_runs) as executor:
@@ -570,6 +509,8 @@ if __name__ == "__main__":
         print("⛔ Interrotto dall'utente.")
 
 
+
+
     if all_results:
         if base_params['learning'] and not base_params['testing']:
             merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
@@ -584,7 +525,7 @@ if __name__ == "__main__":
             save_q_table_to_results("q_table_avg.json", abs_output_dir)
 
 
-        window_size = 100
+        window_size = 1
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
         plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)

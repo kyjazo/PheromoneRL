@@ -40,7 +40,7 @@ def agent_portrayal(agent):
     return portrayal
 
 q_learning_params = {
-        "actions": [0, 1, 3],
+        "actions": [0, 1, 2, 3, 4, 5],
         "alpha": 0.01,
         "gamma": 0.99,
         "epsilon": 0.5,
