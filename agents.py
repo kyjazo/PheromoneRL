@@ -93,17 +93,17 @@ class QLearning:
         sheep_presence = int(sheep_present)
         wolf_presence = int(wolf_present)
 
-        closest_dist = wolf.model.get_closest_sheep_distance(wolf.pos)
-        if closest_dist <= 1.5:
-            dist_category = 0
-        elif closest_dist <= 3.5:
-            dist_category = 1
-        elif closest_dist <= 5.5:
-            dist_category = 2
-        else:
-            dist_category = 3
+        #closest_dist = wolf.model.get_closest_sheep_distance(wolf.pos)
+        #if closest_dist <= 1.5:
+        #    dist_category = 0
+        #elif closest_dist <= 3.5:
+        #    dist_category = 1
+        #elif closest_dist <= 5.5:
+        #    dist_category = 2
+        #else:
+        #    dist_category = 3
 
-        return (max_index, sheep_presence, wolf_presence, dist_category)
+        return (max_index, sheep_presence, wolf_presence)#, dist_category)
     def choose_action(self, state):
 
         if state not in self.q_table:

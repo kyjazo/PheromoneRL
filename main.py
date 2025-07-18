@@ -435,12 +435,12 @@ if __name__ == "__main__":
         "height": 45,
         "initial_wolves": 10,
         "initial_sheep": 20,
-        "learning": False,
+        "learning": True,
         "max_steps": 200,
         "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
-        "testing": True,
+        "testing": False,
         "q_table_file": "./ServerTest/test14/q_table_avg.json"
     }
 
