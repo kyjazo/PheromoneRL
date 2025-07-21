@@ -1,3 +1,5 @@
+import gc
+
 import mesa
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,7 +11,7 @@ import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from agents import QLearning
 import multiprocessing
-from memory_profiler import profile
+#from memory_profiler import profile
 
 
 
@@ -341,44 +343,93 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
 
 
 def run_single_simulation(run_id, base_params, q_learning_params):
-
     try:
-
         params = base_params.copy()
+
         if not base_params['testing']:
             q_table_file = f"q_table_run_{run_id}.json"
-
             params["q_table_file"] = q_table_file
             q = QLearning(**q_learning_params, q_table_file=q_table_file)
         else:
             q_table_file = params['q_table_file']
-            q = QLearning(**q_learning_params, q_table_file=params['q_table_file'])
+            q = QLearning(**q_learning_params, q_table_file=q_table_file)
+
+        all_results = []
+
+        for iteration in range(5000):
+            model = WolfSheepModel(**{k: v for k, v in params.items() if k != "q_learning_params"},
+                                   q_learning=q)
+
+            while model.running:
+                model.step()
 
 
-        result = mesa.batch_run(
-            lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
-            parameters={k: v for k, v in params.items() if k != "q_learning_params"},
-            data_collection_period=-1,
-            iterations=3000,
-            number_processes=1,
-            display_progress=True
-        )
-        agent_reporters = [
-            "iteration", "Steps", "Sheep_eaten", "Reward",
-            "Action_0", "Action_1", "Action_2",
-            "Action_3", "Action_4", "Action_5",
-            "Capture_Intervals"
-        ]
+            agent_data = model.datacollector.get_agent_vars_dataframe()
 
 
-        filtered_result = [
-            {k: v for k, v in r.items() if k in agent_reporters or k == "run_id"}
-            for r in result
-        ]
-    except:
-        print("Errore")
+            if not agent_data.empty:
+                agent_data = agent_data.reset_index()
 
-    return filtered_result, q_table_file
+
+
+                agent_data["iteration"] = iteration
+                agent_data["run_id"] = run_id
+
+
+                all_results.extend(agent_data.to_dict('records'))
+
+            del model
+            gc.collect()
+            print("Iterazione:", iteration)
+
+        return all_results, q_table_file
+
+    except Exception as e:
+        import traceback
+        print(f"⚠️ Errore nella simulazione {run_id}: {traceback.format_exc()}")
+        return [], None
+
+
+
+#def run_single_simulation(run_id, base_params, q_learning_params):
+#
+#    try:
+#
+#        params = base_params.copy()
+#        if not base_params['testing']:
+#            q_table_file = f"q_table_run_{run_id}.json"
+#
+#            params["q_table_file"] = q_table_file
+#            q = QLearning(**q_learning_params, q_table_file=q_table_file)
+#        else:
+#            q_table_file = params['q_table_file']
+#            q = QLearning(**q_learning_params, q_table_file=params['q_table_file'])
+#
+#
+#        result = mesa.batch_run(
+#            lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
+#            parameters={k: v for k, v in params.items() if k != "q_learning_params"},
+#            data_collection_period=-1,
+#            iterations=100,
+#            number_processes=1,
+#            display_progress=True
+#        )
+#        agent_reporters = [
+#            "iteration", "Steps", "Sheep_eaten", "Reward",
+#            "Action_0", "Action_1", "Action_2",
+#            "Action_3", "Action_4", "Action_5",
+#            "Capture_Intervals"
+#        ]
+#
+#
+#        filtered_result = [
+#            {k: v for k, v in r.items() if k in agent_reporters or k == "run_id"}
+#            for r in result
+#        ]
+#    except:
+#        print("Errore")
+#
+#    return filtered_result, q_table_file
 
 
 
@@ -489,8 +540,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("⛔ Interrotto dall'utente.")
 
-
-
+    print("allresults:", all_results)
 
     if all_results:
         if base_params['learning'] and not base_params['testing']:
@@ -498,6 +548,7 @@ if __name__ == "__main__":
             clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
 
         df = pd.DataFrame(all_results)
+
         df = df.dropna(subset=['Sheep_eaten'])
         output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
 

@@ -33,9 +33,9 @@ class WolfSheepModel(Model):
          self.q_table_file = q_table_file
          self.render_pheromone = render_pheromone
          self.wolf_pheromone_layer = PropertyLayer("wolf_pheromone_layer", height=height, width=width,
-                                                   default_value=0.0)
+                                                   default_value=0.0, dtype=float)
          self.sheep_pheromone_layer = PropertyLayer("sheep_pheromone_layer", height=height, width=width,
-                                                    default_value=0.0)
+                                                    default_value=0.0, dtype=float)
          self.pheromone_evaporation = pheromone_evaporation
          self.pheromone_added = pheromone_added
          self.grid = MultiGrid(width, height, torus=False)
@@ -251,7 +251,7 @@ class WolfSheepModel(Model):
                 self.diffuse_pheromones()
 
             #self.agents.shuffle_do("step")
-            self.datacollector.collect(self)
+            #self.datacollector.collect(self)
 
 
 
