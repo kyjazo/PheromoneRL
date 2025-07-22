@@ -42,11 +42,13 @@ class WolfSheepModel(Model):
          self.running = True
 
          self.datacollector = DataCollector(
-             model_reporters={
-                 "Steps": self.get_steps,
-                 "Sheep_Alive": self.get_sheeps
-             },
-             agent_reporters={
+             #model_reporters={
+             #    "Steps": self.get_steps,
+             #    "Sheep_Alive": self.get_sheeps
+             #},
+             #agent_reporters=None,
+             agenttype_reporters={
+                 Wolf: {
                  "Sheep_eaten": lambda a: int(a.sheep_eaten) if hasattr(a, 'sheep_eaten') else None,
                   "Reward": lambda a: float(np.mean(a.rewards))  # Usa la media delle reward
                   if hasattr(a, 'rewards') and a.rewards else None,
@@ -56,10 +58,14 @@ class WolfSheepModel(Model):
                  "Action_3": lambda a: a.action_counts[3] if hasattr(a, "action_counts") else None,
                  "Action_4": lambda a: a.action_counts[4] if hasattr(a, "action_counts") else None,
                  "Action_5": lambda a: a.action_counts[5] if hasattr(a, "action_counts") else None,
-                 "Capture_Intervals": lambda a: a.capture_intervals if hasattr(a, 'capture_intervals') else [],
+                 #"Capture_Intervals": lambda a: a.capture_intervals if hasattr(a, 'capture_intervals') else [],
+                 "Capture_Intervals": lambda a: np.median(a.capture_intervals) if hasattr(a,'capture_intervals') and a.capture_intervals else None,
+                 #"Steps": self.get_steps,
+                 }
 
 
-             }
+             },
+
          )
 
 

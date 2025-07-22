@@ -4,6 +4,7 @@ import mesa
 import pandas as pd
 import matplotlib.pyplot as plt
 from model import WolfSheepModel
+from agents import Wolf
 import os
 import json
 from datetime import datetime
@@ -212,17 +213,17 @@ def plot_sheep_eaten(df, output_dir="./results", window_size=100):
 def plot_simulation_steps(df, output_dir="./results", window_size=100):
     if save:
         os.makedirs(output_dir, exist_ok=True)
-    if "Steps" not in df.columns:
+    if "Step" not in df.columns:
         print("La colonna 'Steps' non è disponibile nei dati.")
         return
 
     window_size = window_size
 
     if 'run_id' in df.columns:
-        steps_data = df.groupby(["run_id", "iteration"])["Steps"].max().reset_index()
-        steps_stats = steps_data.groupby("iteration")["Steps"].agg(["mean", "std"]).reset_index()
+        steps_data = df.groupby(["run_id", "iteration"])["Step"].max().reset_index()
+        steps_stats = steps_data.groupby("iteration")["Step"].agg(["mean", "std"]).reset_index()
     else:
-        steps_stats = df.groupby("iteration")["Steps"].max().reset_index()
+        steps_stats = df.groupby("iteration")["Step"].max().reset_index()
         steps_stats["std"] = 0
 
     steps_stats['mean_rolling'] = steps_stats['mean'].rolling(window=window_size).mean()
@@ -300,22 +301,59 @@ def plot_all_actions_in_one(df, output_dir="./results", window_size=100):
     plt.show()
 
 
+#def plot_capture_median(df, output_dir="./results", window_size=100):
+#    if "Capture_Intervals" not in df.columns:
+#        print("⚠️ Colonna 'Capture_Intervals' mancante.")
+#        return
+#
+#    window_size = window_size
+#
+#    df_valid = df[df["Capture_Intervals"].apply(lambda x: isinstance(x, list) and len(x) > 0)]
+#    exploded = df_valid.explode("Capture_Intervals")
+#    exploded["Capture_Intervals"] = pd.to_numeric(exploded["Capture_Intervals"], errors="coerce")
+#
+#    if 'run_id' in df.columns:
+#        median_data = exploded.groupby(["run_id", "iteration"])["Capture_Intervals"].median().reset_index()
+#        stats = median_data.groupby("iteration")["Capture_Intervals"].agg(['mean', 'std']).reset_index()
+#    else:
+#        stats = exploded.groupby("iteration")["Capture_Intervals"].agg(['median']).reset_index()
+#        stats.columns = ["iteration", "mean"]
+#        stats["std"] = 0
+#
+#    stats['mean_rolling'] = stats['mean'].rolling(window=window_size).mean()
+#    stats['std_rolling'] = stats['std'].rolling(window=window_size).mean()
+#
+#    plt.figure(figsize=(10, 5))
+#    plt.plot(stats["iteration"], stats["mean_rolling"],
+#             color='purple', linewidth=2.5)
+#    plt.fill_between(stats["iteration"],
+#                     stats["mean_rolling"] - stats["std_rolling"],
+#                     stats["mean_rolling"] + stats["std_rolling"],
+#                     color='purple', alpha=0.2)
+#    plt.title(f"Median Steps Between Captures (rolling mean {window_size})", fontsize=16)
+#    plt.xlabel("Episode", fontsize=14)
+#    plt.ylabel("Steps between captures", fontsize=14)
+#    plt.grid(True, linestyle='--', alpha=0.6)
+#    plt.tight_layout()
+#
+#    if save:
+#        filepath = os.path.join(output_dir, f"capture_median_rolling{window_size}.png")
+#        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+#        print(f"📈 Grafico mediana catture salvato in: {filepath}")
+#    plt.show()
 def plot_capture_median(df, output_dir="./results", window_size=100):
     if "Capture_Intervals" not in df.columns:
         print("⚠️ Colonna 'Capture_Intervals' mancante.")
         return
 
-    window_size = window_size
-
-    df_valid = df[df["Capture_Intervals"].apply(lambda x: isinstance(x, list) and len(x) > 0)]
-    exploded = df_valid.explode("Capture_Intervals")
-    exploded["Capture_Intervals"] = pd.to_numeric(exploded["Capture_Intervals"], errors="coerce")
+    if save:
+        os.makedirs(output_dir, exist_ok=True)
 
     if 'run_id' in df.columns:
-        median_data = exploded.groupby(["run_id", "iteration"])["Capture_Intervals"].median().reset_index()
+        median_data = df.groupby(["run_id", "iteration"])["Capture_Intervals"].median().reset_index()
         stats = median_data.groupby("iteration")["Capture_Intervals"].agg(['mean', 'std']).reset_index()
     else:
-        stats = exploded.groupby("iteration")["Capture_Intervals"].agg(['median']).reset_index()
+        stats = df.groupby("iteration")["Capture_Intervals"].agg(['mean']).reset_index()
         stats.columns = ["iteration", "mean"]
         stats["std"] = 0
 
@@ -331,7 +369,7 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
                      color='purple', alpha=0.2)
     plt.title(f"Median Steps Between Captures (rolling mean {window_size})", fontsize=16)
     plt.xlabel("Episode", fontsize=14)
-    plt.ylabel("Steps between captures", fontsize=14)
+    plt.ylabel("Median Steps", fontsize=14)
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.tight_layout()
 
@@ -363,25 +401,21 @@ def run_single_simulation(run_id, base_params, q_learning_params):
             while model.running:
                 model.step()
 
+            agent_data = model.datacollector.get_agenttype_vars_dataframe(Wolf).reset_index()
 
-            agent_data = model.datacollector.get_agent_vars_dataframe()
-
-
-            if not agent_data.empty:
-                agent_data = agent_data.reset_index()
+            #print(agent_data)
 
 
+            agent_data["iteration"] = iteration
+            agent_data["run_id"] = run_id
 
-                agent_data["iteration"] = iteration
-                agent_data["run_id"] = run_id
 
-
-                all_results.extend(agent_data.to_dict('records'))
+            all_results.extend(agent_data.to_dict('records'))
 
             del model
             gc.collect()
             print("Iterazione:", iteration)
-
+        #print(all_results)
         return all_results, q_table_file
 
     except Exception as e:
