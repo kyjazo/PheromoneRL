@@ -12,8 +12,8 @@ import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from agents import QLearning
 import multiprocessing
-#from memory_profiler import profile
-
+from memory_profiler import profile
+import gc
 
 
 
@@ -379,6 +379,13 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
+@profile(precision=4, stream=open('memory_profile.log', 'w+'))
+def run_single_simulation_profiled(run_id, base_params, q_learning_params):
+    # Chiama la tua funzione originale
+    result = run_single_simulation(run_id, base_params, q_learning_params)
+    # Forza garbage collection per misurazioni più accurate
+    gc.collect()
+    return result
 
 def run_single_simulation(run_id, base_params, q_learning_params):
     try:
@@ -394,7 +401,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
 
         all_results = []
 
-        for iteration in range(5000):
+        for iteration in range(10):
             model = WolfSheepModel(**{k: v for k, v in params.items() if k != "q_learning_params"},
                                    q_learning=q)
 
@@ -550,7 +557,7 @@ if __name__ == "__main__":
 
     try:
         with ProcessPoolExecutor(max_workers=num_parallel_runs) as executor:
-            futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
+            futures = [executor.submit(run_single_simulation_profiled, i, base_params, q_learning_params)
                        for i in range(num_parallel_runs)]
 
             for i, future in enumerate(as_completed(futures)):
