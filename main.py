@@ -14,6 +14,13 @@ from agents import QLearning
 import multiprocessing
 from memory_profiler import profile
 import gc
+import psutil
+def check_memory():
+    process = psutil.Process()
+    mem = process.memory_info()
+    print(f"[MEM] RSS: {mem.rss / 1024 / 1024:.2f} MB")
+    print(f"[MEM] VMS: {mem.vms / 1024 / 1024:.2f} MB")
+    #print(f"[MEM] Shared: {mem.shared / 1024 / 1024:.2f} MB")
 
 
 
@@ -379,15 +386,7 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
-@profile(precision=4, stream=open('memory_profile.log', 'w+'))
-def run_single_simulation_profiled(run_id, base_params, q_learning_params):
-    # Chiama la tua funzione originale
-    result = run_single_simulation(run_id, base_params, q_learning_params)
-    # Forza garbage collection per misurazioni più accurate
-    gc.collect()
-    return result
-
-def run_single_simulation(run_id, base_params, q_learning_params):
+def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5000):
     try:
         params = base_params.copy()
 
@@ -401,7 +400,7 @@ def run_single_simulation(run_id, base_params, q_learning_params):
 
         all_results = []
 
-        for iteration in range(10):
+        for iteration in range(num_episodes):
             model = WolfSheepModel(**{k: v for k, v in params.items() if k != "q_learning_params"},
                                    q_learning=q)
 
@@ -412,16 +411,21 @@ def run_single_simulation(run_id, base_params, q_learning_params):
 
             #print(agent_data)
 
-
             agent_data["iteration"] = iteration
             agent_data["run_id"] = run_id
 
-
             all_results.extend(agent_data.to_dict('records'))
+            # utilizzato per liberare la memoria, non basta del model
+            model.grid = None
+            model.remove_all_agents()
+            model.datacollector = None
 
             del model
             gc.collect()
+
+
             print("Iterazione:", iteration)
+            #check_memory()
         #print(all_results)
         return all_results, q_table_file
 
@@ -557,7 +561,7 @@ if __name__ == "__main__":
 
     try:
         with ProcessPoolExecutor(max_workers=num_parallel_runs) as executor:
-            futures = [executor.submit(run_single_simulation_profiled, i, base_params, q_learning_params)
+            futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
                        for i in range(num_parallel_runs)]
 
             for i, future in enumerate(as_completed(futures)):
@@ -581,7 +585,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("⛔ Interrotto dall'utente.")
 
-    print("allresults:", all_results)
+
 
     if all_results:
         if base_params['learning'] and not base_params['testing']:
