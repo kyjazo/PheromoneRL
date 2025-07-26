@@ -11,6 +11,8 @@ class Pheromone:
     wolf_concentration: float = 0.0
     sheep_concentration: float = 0.0
 
+def get_distance(pos1, pos2):
+    return ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
 
 class QLearning:
     def __init__(self, actions=[0, 1, 2, 3, 4, 5], alpha=0.1, gamma=0.9, epsilon=0.1, epsilon_decay=0.995, min_epsilon=0.01,
@@ -329,7 +331,7 @@ class Wolf(Animal):
             self.steps_since_last_capture = 0
             self.stayed = False
             self.eaten = False
-
+            self.shared_reward = 0
             self.last_sheep_distance = float('inf')
             self.last_action = None
             self.current_action = None
@@ -358,6 +360,18 @@ class Wolf(Animal):
             #print("C'è stata una cattura allo step:", self.model.steps)
 
             base_reward += 10.0
+
+            neighbors = self.model.grid.get_neighbors(
+                self.pos, moore=True, include_center=False, radius=5
+            )
+            nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
+
+            for wolf in nearby_wolves:
+                distance = self.model.get_distance(self.pos, wolf.pos)
+                distance_reward = 10 * (1 - distance / 10)
+                #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
+                wolf.shared_reward += distance_reward
+
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
             #print("reward:", base_reward)
@@ -436,6 +450,12 @@ class Wolf(Animal):
         if self.use_learning:
 
             reward = self.calculate_reward()
+
+            if self.shared_reward > 0:
+                #print("Shared reward positiva, reward prima: ", reward)
+                reward += self.shared_reward
+                #print("reward dopo: ", reward)
+                self.shared_reward = 0
 
             if self.eaten:
 
