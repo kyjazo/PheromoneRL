@@ -436,47 +436,6 @@ def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5
 
 
 
-#def run_single_simulation(run_id, base_params, q_learning_params):
-#
-#    try:
-#
-#        params = base_params.copy()
-#        if not base_params['testing']:
-#            q_table_file = f"q_table_run_{run_id}.json"
-#
-#            params["q_table_file"] = q_table_file
-#            q = QLearning(**q_learning_params, q_table_file=q_table_file)
-#        else:
-#            q_table_file = params['q_table_file']
-#            q = QLearning(**q_learning_params, q_table_file=params['q_table_file'])
-#
-#
-#        result = mesa.batch_run(
-#            lambda **kwargs: WolfSheepModel(**kwargs, q_learning=q),
-#            parameters={k: v for k, v in params.items() if k != "q_learning_params"},
-#            data_collection_period=-1,
-#            iterations=100,
-#            number_processes=1,
-#            display_progress=True
-#        )
-#        agent_reporters = [
-#            "iteration", "Steps", "Sheep_eaten", "Reward",
-#            "Action_0", "Action_1", "Action_2",
-#            "Action_3", "Action_4", "Action_5",
-#            "Capture_Intervals"
-#        ]
-#
-#
-#        filtered_result = [
-#            {k: v for k, v in r.items() if k in agent_reporters or k == "run_id"}
-#            for r in result
-#        ]
-#    except:
-#        print("Errore")
-#
-#    return filtered_result, q_table_file
-
-
 
 def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
     combined_q_table = {}
@@ -526,10 +485,35 @@ if __name__ == "__main__":
 
     num_parallel_runs = 3
 
+    #base_params = {
+    #    "width": 45,
+    #    "height": 45,
+    #    "initial_wolves": 10,
+    #    "initial_sheep": 20,
+    #    "learning": True,
+    #    "max_steps": 200,
+    #    "respawn": False,
+    #    "diffusion_rate": 0.5,
+    #    "pheromone_evaporation": 0.1,
+    #    "testing": False,
+    #    "q_table_file": "./ServerTest/test14/q_table_avg.json"
+    #}
+#
+    #q_learning_params = {
+    #    "actions": [0, 1, 2, 3, 4, 5],
+    #    "alpha": 0.1,
+    #    "gamma": 0.99,
+    #    "epsilon": 0.5,
+    #    "epsilon_decay": 0.9985,
+    #    "min_epsilon": 0.01
+    #}
+
+
+    ####primo esperimento
     base_params = {
         "width": 45,
         "height": 45,
-        "initial_wolves": 10,
+        "initial_wolves": 5,
         "initial_sheep": 20,
         "learning": True,
         "max_steps": 200,
@@ -541,7 +525,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3, 4, 5],
+        "actions": [0, 1, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,

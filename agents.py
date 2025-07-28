@@ -228,9 +228,12 @@ class Animal(Agent):
                 max_sheep_ph = max(ph.sheep_concentration for ph in pheromones)
                 max_wolf_ph = max(ph.wolf_concentration for ph in pheromones)
 
+                #metto il treshold molto alto per fare il primo esperimento senza azione avanzata
+                self.treshold_sheep = 100
+                self.treshold_wolf = 100
 
                 if max_sheep_ph >= self.treshold_sheep and max_wolf_ph >= self.treshold_wolf:
-                    #print("Considero entrambi i feromoni allo step: ", self.model.steps)
+                    print("Considero entrambi i feromoni allo step: ", self.model.steps)
 
                     best_step = self.calculate_direction(possible_steps, pheromones, self.phi)
                     return [best_step]
@@ -314,6 +317,7 @@ class Wolf(Animal):
 
                     self.q_learning = QLearning(q_learning=self.model.q_learning,
                                                 q_table_file=q_table_file)
+                    #print("creato q_learning con il file:", q_table_file)
                 else:
                     self.q_learning = QLearning()
                     self.q_learning.load_q_table(model.q_table_file)
@@ -341,20 +345,21 @@ class Wolf(Animal):
 
 
     def __del__(self):
+        #print("chiamo il distruttore")
         if self.use_learning and hasattr(self, 'q_table_file') and self.q_table_file:
             self.q_learning.save_q_table(self.q_table_file)
-            self.q_learning.save_q_table(self.q_table_file)
+            #print("ho salvato la q table in: ", self.q_table_file)
 
     def calculate_reward(self):
 
         base_reward = 0
-        
-        cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
-                       if isinstance(agent, Wolf) and agent != self]
-
-        if cell_wolves:
-            #print("Penalità collisione")
-            base_reward -= 5
+        ####### primo esperimento
+        #cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
+        #               if isinstance(agent, Wolf) and agent != self]
+#
+        #if cell_wolves:
+        #    #print("Penalità collisione")
+        #    base_reward -= 5
 
         if self.eaten:
             #print("C'è stata una cattura allo step:", self.model.steps)
@@ -364,13 +369,14 @@ class Wolf(Animal):
             neighbors = self.model.grid.get_neighbors(
                 self.pos, moore=True, include_center=False, radius=5
             )
-            nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
-
-            for wolf in nearby_wolves:
-                distance = self.model.get_distance(self.pos, wolf.pos)
-                distance_reward = 10 * (1 - distance / 10)
-                #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
-                wolf.shared_reward += distance_reward
+            #####primo esperimento
+            #nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
+#
+            #for wolf in nearby_wolves:
+            #    distance = self.model.get_distance(self.pos, wolf.pos)
+            #    distance_reward = 10 * (1 - distance / 10)
+            #    #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
+            #    wolf.shared_reward += distance_reward
 
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
@@ -450,12 +456,12 @@ class Wolf(Animal):
         if self.use_learning:
 
             reward = self.calculate_reward()
-
-            if self.shared_reward > 0:
-                #print("Shared reward positiva, reward prima: ", reward)
-                reward += self.shared_reward
-                #print("reward dopo: ", reward)
-                self.shared_reward = 0
+            #####primo esperimento
+            #if self.shared_reward > 0:
+            #    #print("Shared reward positiva, reward prima: ", reward)
+            #    reward += self.shared_reward
+            #    #print("reward dopo: ", reward)
+            #    self.shared_reward = 0
 
             if self.eaten:
 
@@ -511,15 +517,13 @@ class Wolf(Animal):
     def get_sheep_eaten(self):
         return self.sheep_eaten if isinstance(self, Wolf) else None
 
-    def avg_step_per_sheep(self):
-        return self.steps / self.sheep_eaten if isinstance(self, Wolf) and self.sheep_eaten > 0 else None
 
 
 class Sheep(Animal):
     def __init__(self, model):
         super().__init__(model)
         self.alive = True
-        self.movement_speed = 2
+        self.movement_speed = 1 ####primo esperimento, mettere a 2  dopo
 
     def get_best_escape_direction(self, possible_steps):
 
@@ -577,8 +581,25 @@ class Sheep(Animal):
             possible_steps = self.model.grid.get_neighborhood(
                 self.pos, moore=True, include_center=False, radius=self.movement_speed
             )
+            #####primo esperimento
+            #best_steps = self.get_best_escape_direction(possible_steps)
+            ###rimuovi questo sotto dopo
+            pheromones = [
+                Pheromone(
+                    wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
+                    sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
+                ) for (x, y) in possible_steps
+            ] if not self.model.render_pheromone else [
+                next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
+                      isinstance(obj, Pheromones)),
+                     Pheromone())
+                for step in possible_steps
+            ]
 
-            best_steps = self.get_best_escape_direction(possible_steps)
+            pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+            min_pheromone = min(pheromone_concentrations)
+            best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
+
 
             if best_steps:
                 self.model.grid.move_agent(self, self.random.choice(best_steps))

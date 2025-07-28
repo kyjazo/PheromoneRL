@@ -7,5 +7,5 @@
   "pheromone_evaporation": 0.1,
   "diffusion_rate": 0.5,
   "pheromone_treshold": 0.000001,
-  "torus": "False"
+  "torus": "True"
 }
