@@ -521,7 +521,8 @@ if __name__ == "__main__":
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
         "testing": False,
-        "q_table_file": "./ServerTest/test14/q_table_avg.json"
+        "q_table_file": "./ServerTest/test14/q_table_avg.json",
+        "torus": True
     }
 
     q_learning_params = {

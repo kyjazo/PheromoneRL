@@ -38,7 +38,7 @@ class WolfSheepModel(Model):
                                                     default_value=0.0, dtype=float)
          self.pheromone_evaporation = pheromone_evaporation
          self.pheromone_added = pheromone_added
-         self.grid = MultiGrid(width, height, torus=False)
+         self.grid = MultiGrid(width, height, torus=self.torus)
          self.running = True
 
          self.datacollector = DataCollector(

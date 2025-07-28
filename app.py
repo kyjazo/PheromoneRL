@@ -39,15 +39,22 @@ def agent_portrayal(agent):
 
     return portrayal
 
+#q_learning_params = {
+#        "actions": [0, 1, 2, 3, 4, 5],
+#        "alpha": 0.01,
+#        "gamma": 0.99,
+#        "epsilon": 0.5,
+#        "epsilon_decay": 0.9985,
+#        "min_epsilon": 0.01
+#    }
 q_learning_params = {
-        "actions": [0, 1, 2, 3, 4, 5],
-        "alpha": 0.01,
-        "gamma": 0.99,
-        "epsilon": 0.5,
-        "epsilon_decay": 0.9985,
-        "min_epsilon": 0.01
-    }
-
+    "actions": [0, 1, 3],
+    "alpha": 0.1,
+    "gamma": 0.99,
+    "epsilon": 0.5,
+    "epsilon_decay": 0.9985,
+    "min_epsilon": 0.01
+}
 
 
 q = QLearning(**q_learning_params, q_table_file="q_table_avg.json")
@@ -76,6 +83,12 @@ model_params = {
         "value": False,
         "values": [True, False],
         "label": "testing?",
+    },
+    "torus": {
+        "type": "Select",
+        "value": False,
+        "values": [True, False],
+        "label": "Torus?",
     },
 
     "height": Slider("Height", 45, 5, 100, 5, dtype=int),
