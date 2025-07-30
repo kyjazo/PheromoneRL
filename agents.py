@@ -354,12 +354,12 @@ class Wolf(Animal):
 
         base_reward = 0
         ####### primo esperimento
-        #cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
-        #               if isinstance(agent, Wolf) and agent != self]
+        cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
+                       if isinstance(agent, Wolf) and agent != self]
 #
-        #if cell_wolves:
-        #    #print("Penalità collisione")
-        #    base_reward -= 5
+        if cell_wolves:
+            #print("Penalità collisione")
+            base_reward -= 5
 
         if self.eaten:
             #print("C'è stata una cattura allo step:", self.model.steps)
@@ -370,13 +370,13 @@ class Wolf(Animal):
                 self.pos, moore=True, include_center=False, radius=5
             )
             #####primo esperimento
-            #nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
+            nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
 #
-            #for wolf in nearby_wolves:
-            #    distance = self.model.get_distance(self.pos, wolf.pos)
-            #    distance_reward = 10 * (1 - distance / 10)
-            #    #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
-            #    wolf.shared_reward += distance_reward
+            for wolf in nearby_wolves:
+                distance = self.model.get_distance(self.pos, wolf.pos)
+                distance_reward = 10 * (1 - distance / 10)
+                #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
+                wolf.shared_reward += distance_reward
 
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
@@ -457,11 +457,11 @@ class Wolf(Animal):
 
             reward = self.calculate_reward()
             #####primo esperimento
-            #if self.shared_reward > 0:
-            #    #print("Shared reward positiva, reward prima: ", reward)
-            #    reward += self.shared_reward
-            #    #print("reward dopo: ", reward)
-            #    self.shared_reward = 0
+            if self.shared_reward > 0:
+                #print("Shared reward positiva, reward prima: ", reward)
+                reward += self.shared_reward
+                #print("reward dopo: ", reward)
+                self.shared_reward = 0
 
             if self.eaten:
 

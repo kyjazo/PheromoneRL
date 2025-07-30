@@ -485,31 +485,7 @@ if __name__ == "__main__":
 
     num_parallel_runs = 3
 
-    #base_params = {
-    #    "width": 45,
-    #    "height": 45,
-    #    "initial_wolves": 10,
-    #    "initial_sheep": 20,
-    #    "learning": True,
-    #    "max_steps": 200,
-    #    "respawn": False,
-    #    "diffusion_rate": 0.5,
-    #    "pheromone_evaporation": 0.1,
-    #    "testing": False,
-    #    "q_table_file": "./ServerTest/test14/q_table_avg.json"
-    #}
-#
-    #q_learning_params = {
-    #    "actions": [0, 1, 2, 3, 4, 5],
-    #    "alpha": 0.1,
-    #    "gamma": 0.99,
-    #    "epsilon": 0.5,
-    #    "epsilon_decay": 0.9985,
-    #    "min_epsilon": 0.01
-    #}
 
-
-    ####primo esperimento
     base_params = {
         "width": 45,
         "height": 45,
@@ -526,7 +502,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3],
+        "actions": [0, 1, 2, 3, 4, 5],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
