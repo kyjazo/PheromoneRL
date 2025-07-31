@@ -5,7 +5,7 @@ import json
 from mesa import Model
 from mesa.space import MultiGrid, PropertyLayer
 from mesa.datacollection import DataCollector
-from agents import Wolf, Sheep, Pheromones, QLearning
+from agents import Wolf, Sheep, Pheromones, QLearning, Trail
 import numpy as np
 
 
@@ -220,46 +220,85 @@ class WolfSheepModel(Model):
     def decay_epsilon(self):
         if self.learning:
             self.q_learning.epsilon = max(self.q_learning.min_epsilon, self.q_learning.epsilon * self.q_learning.epsilon_decay)
+    #def step(self):
+#
+    #    #print("Step: ", self.steps)
+    #    #print(self.count_agents(Sheep))
+#
+    #    for agent in list(self.agents):  # fai una copia perché potresti rimuoverli durante l'iterazione
+    #        if isinstance(agent, Trail):
+    #            agent.step()
+#
+    #    if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
+    #        if not self.testing:
+    #            self.decay_epsilon()
+    #        #print("finita simulazione, chiamo save table")
+    #        self.save_q_tables()
+    #        self.datacollector.collect(self)
+    #        self.running = False
+    #    else:
+#
+    #        wolf_agents = []
+    #        for agent in self.agents:
+    #            if isinstance(agent, Sheep):
+    #                agent.step()
+    #            elif isinstance(agent, Wolf):
+    #                wolf_agents.append(agent)
+#
+    #        for agent in wolf_agents:
+    #            agent.step()
+#
+    #        if self.render_pheromone:
+    #            for agent in self.agents:
+    #                if isinstance(agent, Pheromones):
+    #                    agent.step()
+    #            for agent in self.agents:
+    #                if isinstance(agent, Pheromones):
+    #                    agent.apply_diffusion()
+#
+    #        else:
+    #            self.evaporate_pheromones()
+    #            self.diffuse_pheromones()
+#
+    #        #self.agents.shuffle_do("step")
+    #        #self.datacollector.collect(self)
     def step(self):
 
-        #print("Step: ", self.steps)
-        #print(self.count_agents(Sheep))
+        # STEP 0 – Trail agents (gestiti sempre prima per evitare errori)
+        for agent in list(self.agents):  # iterazione sicura
+            if isinstance(agent, Trail):
+                agent.step()
 
+        # STEP 1 – Controllo fine simulazione
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
             if not self.testing:
                 self.decay_epsilon()
-            #print("finita simulazione, chiamo save table")
             self.save_q_tables()
             self.datacollector.collect(self)
             self.running = False
-        else:
+            return  # 🔁 esci subito dopo la fine della simulazione
 
-            wolf_agents = []
-            for agent in self.agents:
-                if isinstance(agent, Sheep):
-                    agent.step()
-                elif isinstance(agent, Wolf):
-                    wolf_agents.append(agent)
-
-            for agent in wolf_agents:
+        # STEP 2 – Pecore
+        for agent in list(self.agents):  # iterazione sicura
+            if isinstance(agent, Sheep):
                 agent.step()
 
-            if self.render_pheromone:
-                for agent in self.agents:
-                    if isinstance(agent, Pheromones):
-                        agent.step()
-                for agent in self.agents:
-                    if isinstance(agent, Pheromones):
-                        agent.apply_diffusion()
+        # STEP 3 – Lupi (raccolti prima per step successivo)
+        wolf_agents = [agent for agent in list(self.agents) if isinstance(agent, Wolf)]
+        for agent in wolf_agents:
+            agent.step()
 
-            else:
-                self.evaporate_pheromones()
-                self.diffuse_pheromones()
-
-            #self.agents.shuffle_do("step")
-            #self.datacollector.collect(self)
-
-
+        # STEP 4 – Feromoni
+        if self.render_pheromone:
+            for agent in list(self.agents):
+                if isinstance(agent, Pheromones):
+                    agent.step()
+            for agent in list(self.agents):
+                if isinstance(agent, Pheromones):
+                    agent.apply_diffusion()
+        else:
+            self.evaporate_pheromones()
+            self.diffuse_pheromones()
 
             #self.save_q_tables()
 

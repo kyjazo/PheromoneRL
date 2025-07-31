@@ -1,7 +1,7 @@
 import solara
 from mesa.visualization import SolaraViz, make_space_component, Slider
 from model import WolfSheepModel
-from agents import Wolf, Sheep, Pheromones, QLearning
+from agents import Wolf, Sheep, Pheromones, QLearning, Trail
 
 
 def agent_portrayal(agent):
@@ -36,6 +36,15 @@ def agent_portrayal(agent):
            portrayal["color"] = f"#{red_hex:02x}{green_hex:02x}00"
            portrayal["marker"] = "s"
            portrayal["size"] = 75
+
+
+    elif isinstance(agent, Trail):
+        portrayal.update({
+            "color": agent.get_rgb_color(),
+            "marker": "o",
+            "size": 8,
+            "zorder": 1,
+        })
 
     return portrayal
 
