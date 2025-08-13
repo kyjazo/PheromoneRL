@@ -3,9 +3,9 @@
   "grid_height": 45,
   "num_wolves": 5,
   "num_sheep": 20,
-  "pheromone_added": 1,
+  "pheromone_added": 10,
   "pheromone_evaporation": 0.1,
   "diffusion_rate": 0.5,
-  "pheromone_treshold": 0.000001,
+  "pheromone_treshold": 0.0000000001,
   "torus": "True"
 }

@@ -19,7 +19,7 @@ def get_distance(pos1, pos2):
 
 
 class Trail(Agent):
-    def __init__(self, model, pos, base_color="darkred", lifetime=10):
+    def __init__(self, model, pos, base_color="darkred", lifetime=20):
         super().__init__(model)
         self.pos = pos
         self.base_color = base_color  # ex: "darkred", "darkgreen"
@@ -27,15 +27,17 @@ class Trail(Agent):
         self.initial_lifetime = lifetime
 
     def get_rgb_color(self):
-        alpha = self.lifetime / self.initial_lifetime  # da 1 → 0
+        alpha = self.lifetime / self.initial_lifetime  # da 1 → 0 (cioè da colore pieno → bianco)
+
         base_rgb = {
-            "darkred": (139, 0, 0),
-            "darkgreen": (0, 100, 0),
+            "red": (255, 0, 0),
+            "green": (0, 255, 0),
             "gray": (128, 128, 128)
         }.get(self.base_color, (128, 128, 128))
 
         r, g, b = base_rgb
 
+        # Interpolazione verso bianco
         r = int(r + (255 - r) * (1 - alpha))
         g = int(g + (255 - g) * (1 - alpha))
         b = int(b + (255 - b) * (1 - alpha))
@@ -132,17 +134,9 @@ class QLearning:
         sheep_presence = int(sheep_present)
         wolf_presence = int(wolf_present)
 
-        #closest_dist = wolf.model.get_closest_sheep_distance(wolf.pos)
-        #if closest_dist <= 1.5:
-        #    dist_category = 0
-        #elif closest_dist <= 3.5:
-        #    dist_category = 1
-        #elif closest_dist <= 5.5:
-        #    dist_category = 2
-        #else:
-        #    dist_category = 3
 
-        return (max_index, sheep_presence, wolf_presence)#, dist_category)
+
+        return (max_index, sheep_presence, wolf_presence)#, dist_category
     def choose_action(self, state):
 
         if state not in self.q_table:
@@ -267,8 +261,8 @@ class Animal(Agent):
                 max_wolf_ph = max(ph.wolf_concentration for ph in pheromones)
 
                 #metto il treshold molto alto per fare il primo esperimento senza azione avanzata
-                #self.treshold_sheep = 100
-                #self.treshold_wolf = 100
+                self.treshold_sheep = 100
+                self.treshold_wolf = 100
 
                 if max_sheep_ph >= self.treshold_sheep and max_wolf_ph >= self.treshold_wolf:
                     #print("Considero entrambi i feromoni allo step: ", self.model.steps)
@@ -392,12 +386,12 @@ class Wolf(Animal):
 
         base_reward = 0
         ####### primo esperimento
-        #cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
-        #               if isinstance(agent, Wolf) and agent != self]
+        cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
+                       if isinstance(agent, Wolf) and agent != self]
 #
-        #if cell_wolves:
-        #    #print("Penalità collisione")
-        #    base_reward -= 5
+        if cell_wolves:
+            #print("Penalità collisione")
+            base_reward -= 5
 
         if self.eaten:
             #print("C'è stata una cattura allo step:", self.model.steps)
@@ -408,13 +402,13 @@ class Wolf(Animal):
                 self.pos, moore=True, include_center=False, radius=5
             )
             #####primo esperimento
-            #nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
+            nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
 ##
-            #for wolf in nearby_wolves:
-            #    distance = self.model.get_distance(self.pos, wolf.pos)
-            #    distance_reward = 10 * (1 - distance / 10)
-            #    #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
-            #    wolf.shared_reward += distance_reward
+            for wolf in nearby_wolves:
+                distance = self.model.get_distance(self.pos, wolf.pos)
+                distance_reward = 10 * (1 - distance / 10)
+                #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
+                wolf.shared_reward += distance_reward
 
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
@@ -435,11 +429,11 @@ class Wolf(Animal):
     def step(self):
         self.positions.append(self.pos)
 
-        #if self.steps > 0:
-        #    trail = Trail(self.model, pos=self.pos, base_color="darkred", lifetime=10)
-        #    self.model.grid.place_agent(trail, self.pos)
-        #    self.model.agents.add(trail)
-        #    #print("Lupo rilascia trail:", trail)
+        if self.steps > 0:
+            trail = Trail(self.model, pos=self.pos, base_color="red", lifetime=20)
+            self.model.grid.place_agent(trail, self.pos)
+            self.model.agents.add(trail)
+            #print("Lupo rilascia trail:", trail)
 
         if not self.use_learning or self.q_learning.actions == [0, 1, 3]:
 
@@ -623,10 +617,10 @@ class Sheep(Animal):
         if self.alive:
             self.positions.append(self.pos)
 
-            #if self.steps > 0:
-            #    trail = Trail(self.model, pos=self.pos, base_color="darkgreen", lifetime=10)
-            #    self.model.grid.place_agent(trail, self.pos)
-            #    self.model.agents.add(trail)
+            if self.steps > 0:
+                trail = Trail(self.model, pos=self.pos, base_color="green", lifetime=20)
+                self.model.grid.place_agent(trail, self.pos)
+                self.model.agents.add(trail)
             #    print("Pecore rilascia trail:", trail)
 
             self.update_pheromone()
@@ -635,23 +629,23 @@ class Sheep(Animal):
                 self.pos, moore=True, include_center=False, radius=self.movement_speed
             )
             #####primo esperimento
-            #best_steps = self.get_best_escape_direction(possible_steps)
+            best_steps = self.get_best_escape_direction(possible_steps)
             ###rimuovi questo sotto dopo
-            pheromones = [
-                Pheromone(
-                    wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
-                    sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
-                ) for (x, y) in possible_steps
-            ] if not self.model.render_pheromone else [
-                next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
-                      isinstance(obj, Pheromones)),
-                     Pheromone())
-                for step in possible_steps
-            ]
-#
-            pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
-            min_pheromone = min(pheromone_concentrations)
-            best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
+            #pheromones = [
+            #    Pheromone(
+            #        wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
+            #        sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
+            #    ) for (x, y) in possible_steps
+            #] if not self.model.render_pheromone else [
+            #    next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
+            #          isinstance(obj, Pheromones)),
+            #         Pheromone())
+            #    for step in possible_steps
+            #]
+##
+            #pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+            #min_pheromone = min(pheromone_concentrations)
+            #best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
 
 
             if best_steps:
@@ -708,3 +702,4 @@ class Pheromones(Agent):
         self.pheromone.sheep_concentration *= (1 - self.model.pheromone_evaporation)
         self.pheromone.wolf_concentration *= (1 - self.model.pheromone_evaporation)
         self.prepare_diffusion()
+

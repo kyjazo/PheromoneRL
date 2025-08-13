@@ -386,7 +386,7 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
-def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5000):
+def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=100):
     try:
         params = base_params.copy()
 
@@ -496,8 +496,8 @@ if __name__ == "__main__":
         "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
-        "testing": False,
-        "q_table_file": "./ServerTest/test14/q_table_avg.json",
+        "testing": True,
+        "q_table_file": "./FinalServerTest/test13/q_table_avg.json",
         "torus": False
     }
 
@@ -563,7 +563,7 @@ if __name__ == "__main__":
             save_q_table_to_results("q_table_avg.json", abs_output_dir)
 
 
-        window_size = 100
+        window_size = 1
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
         plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)
