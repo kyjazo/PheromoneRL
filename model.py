@@ -1,5 +1,5 @@
 import math
-
+import os
 import mesa
 import json
 from mesa import Model
@@ -90,11 +90,29 @@ class WolfSheepModel(Model):
     def place_agents(self, agent_class, num_agents):
 
         if agent_class.__name__ == "Wolf":
-            agents = agent_class.create_agents(model=self, n=num_agents, q_table_file=self.q_table_file, q_learning=self.q_learning)
+            q_tables_dir = None
+            if getattr(self, "q_table_file", None):
+                q_tables_dir = os.path.join(os.path.dirname(os.path.abspath(self.q_table_file)), "q_tables")
+
+            agents = []
+            if q_tables_dir and os.path.isdir(q_tables_dir):
+                for i in range(num_agents):
+                    candidate = os.path.join(q_tables_dir, f"q_table_{i}.json")
+                    if os.path.exists(candidate):
+                        #print(f"[DEBUG] Wolf {i} carica q_table da: {candidate}")
+                        agent = Wolf(self, q_table_file=candidate, q_learning=self.q_learning)
+                    else:
+                        #print(f"[DEBUG] Wolf {i} parte con q_table vuota (nessun file trovato)")
+                        agent = Wolf(self, q_table_file=None, q_learning=self.q_learning)
+                    agents.append(agent)
+            else:
+                for i in range(num_agents):
+                    #print(f"[DEBUG] Wolf {i} parte con q_table vuota (cartella q_tables non trovata)")
+                    agent = Wolf(self, q_table_file=None, q_learning=self.q_learning)
+                    agents.append(agent)
 
             center_x, center_y = self.grid.width // 2, self.grid.height // 2
-            positions = [(center_x + dx, center_y + dy)
-                         for dx in range(-2, 3) for dy in range(-2, 3)]
+            positions = [(center_x + dx, center_y + dy) for dx in range(-2, 3) for dy in range(-2, 3)]
             self.random.shuffle(positions)
             positions = positions[:num_agents]
 
@@ -143,29 +161,55 @@ class WolfSheepModel(Model):
 
         return math.sqrt(dx ** 2 + dy ** 2)
 
+    #def save_q_tables(self):
+    #    if not self.learning or not hasattr(self, 'q_table_file') or not self.q_table_file:
+    #        return
+#
+    #    q_tables = {}
+    #    for agent in self.agents:
+    #        if isinstance(agent, Wolf):
+    #            for state, actions in agent.q_learning.q_table.items():
+    #                if state not in q_tables:
+    #                    q_tables[state] = actions
+    #                else:
+    #                    for action, value in actions.items():
+    #                        if action in q_tables[state]:
+    #                            q_tables[state][action] = (q_tables[state][action] + value) / 2
+    #                        else:
+    #                            q_tables[state][action] = value
+#
+    #    if q_tables:
+    #        temp_q_learning = QLearning(actions=[0, 1, 2, 3])
+    #        temp_q_learning.q_table = q_tables
+    #        temp_q_learning.save_q_table(self.q_table_file)
+    #        #print("Saved: ", self.q_table_file)
     def save_q_tables(self):
+        """
+        Salva una q-table separata per ogni Wolf nella cartella
+        <dirname(self.q_table_file)>/q_tables/ come:
+            q_table_0.json, q_table_1.json, ...
+        L'ordine (indice) corrisponde all'ordine dei Wolf in self.agents
+        (ordine di creazione/posizionamento).
+        """
         if not self.learning or not hasattr(self, 'q_table_file') or not self.q_table_file:
             return
 
-        q_tables = {}
-        for agent in self.agents:
-            if isinstance(agent, Wolf):
-                for state, actions in agent.q_learning.q_table.items():
-                    if state not in q_tables:
-                        q_tables[state] = actions
-                    else:
-                        for action, value in actions.items():
-                            if action in q_tables[state]:
-                                q_tables[state][action] = (q_tables[state][action] + value) / 2
-                            else:
-                                q_tables[state][action] = value
 
-        if q_tables:
-            temp_q_learning = QLearning(actions=[0, 1, 2, 3])
-            temp_q_learning.q_table = q_tables
-            temp_q_learning.save_q_table(self.q_table_file)
-            #print("Saved: ", self.q_table_file)
+        q_tables_dir = os.path.join(os.path.dirname(os.path.abspath(self.q_table_file)), "q_tables")
+        os.makedirs(q_tables_dir, exist_ok=True)
 
+
+        wolf_agents = [a for a in self.agents if isinstance(a, Wolf)]
+
+        for idx, wolf in enumerate(wolf_agents):
+            if hasattr(wolf, 'q_learning') and wolf.q_learning:
+                filename = os.path.join(q_tables_dir, f"q_table_{idx}.json")
+                try:
+                    wolf.q_learning.save_q_table(filename)
+                except Exception as e:
+                    # non bloccare l'esecuzione se un singolo salvataggio fallisce
+                    print(f"⚠️ Errore nel salvataggio q_table per wolf idx={idx}: {e}")
+                #print(f"[DEBUG] Q-table del Wolf {idx} salvata in: {filename}")
 
 
 
@@ -264,31 +308,31 @@ class WolfSheepModel(Model):
     #        #self.datacollector.collect(self)
     def step(self):
 
-        # STEP 0 – Trail agents (gestiti sempre prima per evitare errori)
-        for agent in list(self.agents):  # iterazione sicura
+
+        for agent in list(self.agents):
             if isinstance(agent, Trail):
                 agent.step()
 
-        # STEP 1 – Controllo fine simulazione
+
         if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
             if not self.testing:
                 self.decay_epsilon()
             self.save_q_tables()
             self.datacollector.collect(self)
             self.running = False
-            return  # 🔁 esci subito dopo la fine della simulazione
+            return
 
-        # STEP 2 – Pecore
-        for agent in list(self.agents):  # iterazione sicura
+
+        for agent in list(self.agents):
             if isinstance(agent, Sheep):
                 agent.step()
 
-        # STEP 3 – Lupi (raccolti prima per step successivo)
+
         wolf_agents = [agent for agent in list(self.agents) if isinstance(agent, Wolf)]
         for agent in wolf_agents:
             agent.step()
 
-        # STEP 4 – Feromoni
+
         if self.render_pheromone:
             for agent in list(self.agents):
                 if isinstance(agent, Pheromones):

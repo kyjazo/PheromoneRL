@@ -429,11 +429,11 @@ class Wolf(Animal):
     def step(self):
         self.positions.append(self.pos)
 
-        if self.steps > 0:
-            trail = Trail(self.model, pos=self.pos, base_color="red", lifetime=20)
-            self.model.grid.place_agent(trail, self.pos)
-            self.model.agents.add(trail)
-            #print("Lupo rilascia trail:", trail)
+        #if self.steps > 0:
+        #    trail = Trail(self.model, pos=self.pos, base_color="red", lifetime=20)
+        #    self.model.grid.place_agent(trail, self.pos)
+        #    self.model.agents.add(trail)
+        #    #print("Lupo rilascia trail:", trail)
 
         if not self.use_learning or self.q_learning.actions == [0, 1, 3]:
 
@@ -617,11 +617,11 @@ class Sheep(Animal):
         if self.alive:
             self.positions.append(self.pos)
 
-            if self.steps > 0:
-                trail = Trail(self.model, pos=self.pos, base_color="green", lifetime=20)
-                self.model.grid.place_agent(trail, self.pos)
-                self.model.agents.add(trail)
-            #    print("Pecore rilascia trail:", trail)
+            #if self.steps > 0:
+            #    trail = Trail(self.model, pos=self.pos, base_color="green", lifetime=20)
+            #    self.model.grid.place_agent(trail, self.pos)
+            #    self.model.agents.add(trail)
+            ##    print("Pecore rilascia trail:", trail)
 
             self.update_pheromone()
 

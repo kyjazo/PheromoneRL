@@ -12,6 +12,7 @@ import shutil
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from agents import QLearning
 import multiprocessing
+from collections import defaultdict
 from memory_profiler import profile
 import gc
 import psutil
@@ -25,14 +26,31 @@ def check_memory():
 
 
 
-def save_q_table_to_results(q_table_file, output_dir):
+#def save_q_table_to_results(q_table_file, output_dir):
+#    """
+#    Copia la cartella 'q_tables' (contenente q_table_0.json, q_table_1.json, ...) nella cartella di output.
+#    Non viene salvata la q_table media.
+#    """
+#    if not q_table_file:
+#        print("ℹ️ Nessun q_table_file specificato; nessuna q_table da copiare.")
+#        return
+#
+#    q_tables_dir = os.path.join(os.path.dirname(os.path.abspath(q_table_file)), "q_tables")
+#    if os.path.exists(q_tables_dir) and os.path.isdir(q_tables_dir):
+#        dest_q_tables = os.path.join(output_dir, "q_tables")
+#        if os.path.exists(dest_q_tables):
+#            shutil.rmtree(dest_q_tables)
+#        shutil.copytree(q_tables_dir, dest_q_tables)
+#        print(f"📁 Cartella q_tables copiata in: {dest_q_tables}")
+#    else:
+#        print("ℹ️ Nessuna cartella 'q_tables' trovata da copiare.")
+def save_q_table_to_results(run_dirs, output_dir, n_wolves):
+    """
+    Combina le q-tables di più run concorrenti e salva solo la media.
+    """
+    merge_q_tables(run_dirs, output_dir, n_wolves)
 
-    if os.path.exists(q_table_file):
-        dest_path = os.path.join(output_dir, os.path.basename(q_table_file))
-        shutil.copy2(q_table_file, dest_path)
-        print(f"📋 Q-table salvata in: {dest_path}")
-    else:
-        print("⚠️ File Q-table non trovato, nessuna copia effettuata")
+
 def get_next_test_folder(testing=False, learning=False, prefix="test"):
     global save
 
@@ -391,7 +409,9 @@ def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=1
         params = base_params.copy()
 
         if not base_params['testing']:
-            q_table_file = f"q_table_run_{run_id}.json"
+            run_output_dir = os.path.join("./tmp_runs", f"run_{run_id}")
+            os.makedirs(run_output_dir, exist_ok=True)
+            q_table_file = os.path.join(run_output_dir, "q_table_anchor.json")
             params["q_table_file"] = q_table_file
             q = QLearning(**q_learning_params, q_table_file=q_table_file)
         else:
@@ -427,7 +447,8 @@ def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=1
             print("Iterazione:", iteration)
             #check_memory()
         #print(all_results)
-        return all_results, q_table_file
+        return all_results, run_output_dir
+
 
     except Exception as e:
         import traceback
@@ -435,56 +456,155 @@ def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=1
         return [], None
 
 
+def merge_q_tables(run_dirs, output_dir, n_wolves):
+    """
+    Unisce le q-tables di più run facendo la media.
+
+    Args:
+        run_dirs: lista di cartelle delle run (ognuna contiene 'q_tables/q_table_<i>.json')
+        output_dir: cartella finale dei risultati (es. abs_output_dir)
+        n_wolves: numero di agenti Wolf (per sapere quanti q_table_<i>.json aspettarsi)
+    """
+    q_tables_out_dir = os.path.join(output_dir, "q_tables")
+    os.makedirs(q_tables_out_dir, exist_ok=True)
+
+    for idx in range(n_wolves):
+        combined_q = defaultdict(lambda: defaultdict(float))
+        counts = defaultdict(lambda: defaultdict(int))
+
+        for run_dir in run_dirs:
+            q_file = os.path.join(run_dir, "q_tables", f"q_table_{idx}.json")
+            if not os.path.exists(q_file):
+                continue
+            with open(q_file, "r") as f:
+                q_table = json.load(f)
+
+            for state, actions in q_table.items():
+                for action, value in actions.items():
+                    combined_q[state][action] += float(value)
+                    counts[state][action] += 1
+
+        # facciamo la media
+        avg_q = {}
+        for state, actions in combined_q.items():
+            avg_q[state] = {}
+            for action, total in actions.items():
+                avg_q[state][action] = total / counts[state][action]
+
+        out_file = os.path.join(q_tables_out_dir, f"q_table_{idx}.json")
+        with open(out_file, "w") as f:
+            json.dump(avg_q, f)
+        print(f"[DEBUG] Q-table media per Wolf {idx} salvata in {out_file}")
+def clean_up_q_tables(run_dirs):
+    """
+    Rimuove le cartelle temporanee di ogni run (es. ./tmp_runs/run_X).
+    """
+    for run_dir in run_dirs:
+        if os.path.exists(run_dir):
+            shutil.rmtree(run_dir)
+            print(f"[DEBUG] Rimossa cartella temporanea {run_dir}")
 
 
-def merge_q_tables(q_table_files, output_file="q_table_avg.json"):
-    combined_q_table = {}
-    print(q_table_files)
-    for file in q_table_files:
-        with open(file, "r") as f:
-            q_table = json.load(f)
-
-        for state, actions in q_table.items():
-            state = eval(state)
-            if state not in combined_q_table:
-                combined_q_table[state] = {int(a): float(v) for a, v in actions.items()}
-            else:
-                for a, v in actions.items():
-                    a = int(a)
-                    if a in combined_q_table[state]:
-                        combined_q_table[state][a] += float(v)
-                    else:
-                        combined_q_table[state][a] = float(v)
 
 
-    for state in combined_q_table:
-        for action in combined_q_table[state]:
-            combined_q_table[state][action] /= len(q_table_files)
-
-
-    with open(output_file, "w") as f:
-        json.dump({str(k): v for k, v in combined_q_table.items()}, f, indent=2)
-    print(f"✅ Q-table media salvata in {output_file}")
-
-def clean_up_q_tables(q_table_files, keep_file="q_table_avg.json"):
-    for file in q_table_files:
-        try:
-            if os.path.exists(file) and file != keep_file:
-                os.remove(file)
-                print(f"🗑️ Q-table eliminata: {file}")
-        except Exception as e:
-            print(f"⚠️ Errore nell'eliminazione di {file}: {e}")
-
-
-
-
+#if __name__ == "__main__":
+#
+#
+#    multiprocessing.set_start_method("spawn", force=True)
+#
+#    num_parallel_runs = 3
+#
+#
+#    base_params = {
+#        "width": 45,
+#        "height": 45,
+#        "initial_wolves": 10,
+#        "initial_sheep": 20,
+#        "learning": True,
+#        "max_steps": 200,
+#        "respawn": False,
+#        "diffusion_rate": 0.5,
+#        "pheromone_evaporation": 0.1,
+#        "testing": False,
+#        "q_table_file": "./FinalServerTest/test13/q_table_avg.json",
+#        "torus": False
+#    }
+#
+#    q_learning_params = {
+#        "actions": [0, 1, 2, 3],
+#        "alpha": 0.1,
+#        "gamma": 0.99,
+#        "epsilon": 0.5,
+#        "epsilon_decay": 0.9985,
+#        "min_epsilon": 0.01
+#    }
+#
+#    all_results = []
+#    q_tables_paths = []
+#    partial_results_file = "partial_results.csv"
+#    save = True
+#
+#
+#    if os.path.exists(partial_results_file):
+#        os.remove(partial_results_file)
+#
+#
+#    try:
+#        with ProcessPoolExecutor(max_workers=num_parallel_runs) as executor:
+#            futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
+#                       for i in range(num_parallel_runs)]
+#
+#            for i, future in enumerate(as_completed(futures)):
+#                try:
+#                    sim_result, q_table_file = future.result()
+#
+#                    for r in sim_result:
+#                        r["run_id"] = i
+#                    all_results.extend(sim_result)
+#
+#                    pd.DataFrame(sim_result).to_csv(partial_results_file, mode='a', index=False,
+#                                                    header=not os.path.exists(partial_results_file))
+#
+#                    if base_params['learning'] and not base_params['testing']:
+#                        q_tables_paths.append(q_table_file)
+#
+#                except Exception as e:
+#                    import traceback
+#                    print(f"⚠️ Errore nella simulazione {i}: {traceback.format_exc()}")
+#
+#    except KeyboardInterrupt:
+#        print("⛔ Interrotto dall'utente.")
+#
+#
+#
+#    if all_results:
+#        if base_params['learning'] and not base_params['testing']:
+#            output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
+#            merge_q_tables(q_tables_paths, abs_output_dir, n_wolves=base_params["initial_wolves"])
+#            clean_up_q_tables(q_tables_paths)
+#
+#        df = pd.DataFrame(all_results)
+#
+#        df = df.dropna(subset=['Sheep_eaten'])
+#        output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
+#
+#        if save:
+#            save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
+#
+#
+#
+#        window_size = 1
+#        plot_results(df, output_dir=output_dir, window_size=window_size)
+#        plot_reward(df, output_dir=output_dir, window_size=window_size)
+#        plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)
+#        plot_simulation_steps(df, output_dir=output_dir, window_size=window_size)
+#        plot_all_actions_in_one(df, output_dir=output_dir, window_size=window_size)
+#        plot_capture_median(df, output_dir=output_dir, window_size=window_size)
 if __name__ == "__main__":
-
 
     multiprocessing.set_start_method("spawn", force=True)
 
     num_parallel_runs = 3
-
 
     base_params = {
         "width": 45,
@@ -496,13 +616,13 @@ if __name__ == "__main__":
         "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
-        "testing": True,
-        "q_table_file": "./FinalServerTest/test13/q_table_avg.json",
+        "testing": False,
+        "q_table_file": None,
         "torus": False
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3],
+        "actions": [0, 1, 2, 3, 4, 5],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -511,13 +631,9 @@ if __name__ == "__main__":
     }
 
     all_results = []
-    q_tables_paths = []
-    partial_results_file = "partial_results.csv"
+    run_dirs = []  # qui accumuliamo le cartelle temporanee delle run
+
     save = True
-
-
-    if os.path.exists(partial_results_file):
-        os.remove(partial_results_file)
 
 
     try:
@@ -527,17 +643,14 @@ if __name__ == "__main__":
 
             for i, future in enumerate(as_completed(futures)):
                 try:
-                    sim_result, q_table_file = future.result()
+                    sim_result, run_dir = future.result()
 
                     for r in sim_result:
                         r["run_id"] = i
                     all_results.extend(sim_result)
 
-                    pd.DataFrame(sim_result).to_csv(partial_results_file, mode='a', index=False,
-                                                    header=not os.path.exists(partial_results_file))
-
                     if base_params['learning'] and not base_params['testing']:
-                        q_tables_paths.append(q_table_file)
+                        run_dirs.append(run_dir)
 
                 except Exception as e:
                     import traceback
@@ -546,23 +659,22 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("⛔ Interrotto dall'utente.")
 
-
+    print(run_dirs)
 
     if all_results:
-        if base_params['learning'] and not base_params['testing']:
-            merge_q_tables(q_tables_paths, output_file="q_table_avg.json")
-            clean_up_q_tables(q_tables_paths, keep_file="q_table_avg.json")
-
         df = pd.DataFrame(all_results)
-
         df = df.dropna(subset=['Sheep_eaten'])
+
         output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
+
+        if base_params['learning'] and not base_params['testing']:
+            merge_q_tables(run_dirs, abs_output_dir, n_wolves=base_params["initial_wolves"])
+            clean_up_q_tables(run_dirs)
 
         if save:
             save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
-            save_q_table_to_results("q_table_avg.json", abs_output_dir)
 
-
+        # plotting
         window_size = 1
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
@@ -570,6 +682,7 @@ if __name__ == "__main__":
         plot_simulation_steps(df, output_dir=output_dir, window_size=window_size)
         plot_all_actions_in_one(df, output_dir=output_dir, window_size=window_size)
         plot_capture_median(df, output_dir=output_dir, window_size=window_size)
+
 
 
 
