@@ -291,13 +291,13 @@ class Animal(Agent):
                 pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
                 min_pheromone = min(pheromone_concentrations)
                 return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
-            elif action == -1:
-                #pheromone_differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
-                #max_difference = max(pheromone_differences)
-                #return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
-                pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
-                max_pheromone = max(pheromone_concentrations)
-                return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == max_pheromone]
+            elif action == -1: # considera sia la concentrazione dei feromoni delle pecore che dei lupi
+                pheromone_differences = [ph.sheep_concentration - ph.wolf_concentration for ph in pheromones]
+                max_difference = max(pheromone_differences)
+                return [step for step, diff in zip(possible_steps, pheromone_differences) if diff == max_difference]
+                #pheromone_concentrations = [ph.sheep_concentration for ph in pheromones]
+                #max_pheromone = max(pheromone_concentrations)
+                #return [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == max_pheromone]
 
         else:
             #return [self.random.choice(possible_steps)]
@@ -389,9 +389,9 @@ class Wolf(Animal):
         cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
                        if isinstance(agent, Wolf) and agent != self]
 #
-        if cell_wolves:
-            #print("Penalità collisione")
-            base_reward -= 5
+        #if cell_wolves:
+        #    #print("Penalità collisione")
+        #    base_reward -= 5
 
         if self.eaten:
             #print("C'è stata una cattura allo step:", self.model.steps)
@@ -402,13 +402,13 @@ class Wolf(Animal):
                 self.pos, moore=True, include_center=False, radius=5
             )
             #####primo esperimento
-            nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
-##
-            for wolf in nearby_wolves:
-                distance = self.model.get_distance(self.pos, wolf.pos)
-                distance_reward = 10 * (1 - distance / 10)
-                #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
-                wolf.shared_reward += distance_reward
+            #nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
+###
+            #for wolf in nearby_wolves:
+            #    distance = self.model.get_distance(self.pos, wolf.pos)
+            #    distance_reward = 10 * (1 - distance / 10)
+            #    #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
+            #    wolf.shared_reward += distance_reward
 
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)

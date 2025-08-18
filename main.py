@@ -404,50 +404,68 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
-def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=100):
+def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5000):
+    """
+    Esegue una singola run:
+      - in TRAINING (learning=True, testing=False) crea una cartella ./tmp_runs/run_<id>/
+        con le q-tables salvate ad ogni episodio.
+      - in TESTING (learning=False, testing=True) usa direttamente la q_table_file passata
+        nei parametri e non crea cartelle temporanee.
+    """
     try:
         params = base_params.copy()
+        all_results = []
 
-        if not base_params['testing']:
+        if base_params["learning"] and not base_params["testing"]:
             run_output_dir = os.path.join("./tmp_runs", f"run_{run_id}")
             os.makedirs(run_output_dir, exist_ok=True)
+
             q_table_file = os.path.join(run_output_dir, "q_table_anchor.json")
             params["q_table_file"] = q_table_file
             q = QLearning(**q_learning_params, q_table_file=q_table_file)
+
+
         else:
-            q_table_file = params['q_table_file']
+            run_output_dir = None
+            q_table_file = params.get("q_table_file", None)
+
             q = QLearning(**q_learning_params, q_table_file=q_table_file)
 
-        all_results = []
 
         for iteration in range(num_episodes):
-            model = WolfSheepModel(**{k: v for k, v in params.items() if k != "q_learning_params"},
-                                   q_learning=q)
+            model = WolfSheepModel(
+                **{k: v for k, v in params.items() if k != "q_learning_params"},
+                q_learning=q
+            )
 
             while model.running:
                 model.step()
 
             agent_data = model.datacollector.get_agenttype_vars_dataframe(Wolf).reset_index()
-
-            #print(agent_data)
-
             agent_data["iteration"] = iteration
             agent_data["run_id"] = run_id
+            all_results.extend(agent_data.to_dict("records"))
 
-            all_results.extend(agent_data.to_dict('records'))
-            # utilizzato per liberare la memoria, non basta del model
+
             model.grid = None
             model.remove_all_agents()
             model.datacollector = None
-
             del model
             gc.collect()
 
+            print("Episodio: ", iteration)
 
-            print("Iterazione:", iteration)
-            #check_memory()
-        #print(all_results)
-        return all_results, run_output_dir
+
+        if base_params["learning"] and not base_params["testing"]:
+            q.save_q_table(q_table_file)
+            return all_results, run_output_dir
+        else:
+            return all_results, None
+
+    except Exception as e:
+        import traceback
+        print(f"⚠️ Errore in run {run_id}: {traceback.format_exc()}")
+        return [], None
 
 
     except Exception as e:
@@ -622,7 +640,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3, 4, 5],
+        "actions": [0, 1, 2, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -649,7 +667,7 @@ if __name__ == "__main__":
                         r["run_id"] = i
                     all_results.extend(sim_result)
 
-                    if base_params['learning'] and not base_params['testing']:
+                    if base_params['learning'] and not base_params['testing'] and run_dir is not None:
                         run_dirs.append(run_dir)
 
                 except Exception as e:
@@ -675,7 +693,7 @@ if __name__ == "__main__":
             save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
 
         # plotting
-        window_size = 1
+        window_size = 100
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
         plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)
