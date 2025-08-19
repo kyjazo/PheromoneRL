@@ -640,7 +640,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3],
+        "actions": [0, 1, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
