@@ -261,8 +261,8 @@ class Animal(Agent):
                 max_wolf_ph = max(ph.wolf_concentration for ph in pheromones)
 
                 #metto il treshold molto alto per fare il primo esperimento senza azione avanzata
-                #self.treshold_sheep = 100
-                #self.treshold_wolf = 100
+                self.treshold_sheep = 100
+                self.treshold_wolf = 100
 
                 if max_sheep_ph >= self.treshold_sheep and max_wolf_ph >= self.treshold_wolf:
                     #print("Considero entrambi i feromoni allo step: ", self.model.steps)
@@ -562,7 +562,7 @@ class Sheep(Animal):
     def __init__(self, model):
         super().__init__(model)
         self.alive = True
-        self.movement_speed = 2 ####primo esperimento, mettere a 2  dopo
+        self.movement_speed = 1 ####primo esperimento, mettere a 2  dopo
 
     def get_best_escape_direction(self, possible_steps):
 
@@ -629,23 +629,23 @@ class Sheep(Animal):
                 self.pos, moore=True, include_center=False, radius=self.movement_speed
             )
             #####primo esperimento
-            best_steps = self.get_best_escape_direction(possible_steps)
-            ###rimuovi questo sotto dopo
-            #pheromones = [
-            #    Pheromone(
-            #        wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
-            #        sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
-            #    ) for (x, y) in possible_steps
-            #] if not self.model.render_pheromone else [
-            #    next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
-            #          isinstance(obj, Pheromones)),
-            #         Pheromone())
-            #    for step in possible_steps
-            #]
+            #best_steps = self.get_best_escape_direction(possible_steps)
+            ##rimuovi questo sotto dopo
+            pheromones = [
+                Pheromone(
+                    wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
+                    sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
+                ) for (x, y) in possible_steps
+            ] if not self.model.render_pheromone else [
+                next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
+                      isinstance(obj, Pheromones)),
+                     Pheromone())
+                for step in possible_steps
+            ]
 ###
-            #pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
-            #min_pheromone = min(pheromone_concentrations)
-            #best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
+            pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+            min_pheromone = min(pheromone_concentrations)
+            best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
 
 
             if best_steps:
