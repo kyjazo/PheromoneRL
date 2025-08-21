@@ -405,13 +405,7 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
     plt.show()
 
 def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5000):
-    """
-    Esegue una singola run:
-      - in TRAINING (learning=True, testing=False) crea una cartella ./tmp_runs/run_<id>/
-        con le q-tables salvate ad ogni episodio.
-      - in TESTING (learning=False, testing=True) usa direttamente la q_table_file passata
-        nei parametri e non crea cartelle temporanee.
-    """
+
     try:
         params = base_params.copy()
         all_results = []
@@ -475,14 +469,7 @@ def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5
 
 
 def merge_q_tables(run_dirs, output_dir, n_wolves):
-    """
-    Unisce le q-tables di più run facendo la media.
 
-    Args:
-        run_dirs: lista di cartelle delle run (ognuna contiene 'q_tables/q_table_<i>.json')
-        output_dir: cartella finale dei risultati (es. abs_output_dir)
-        n_wolves: numero di agenti Wolf (per sapere quanti q_table_<i>.json aspettarsi)
-    """
     q_tables_out_dir = os.path.join(output_dir, "q_tables")
     os.makedirs(q_tables_out_dir, exist_ok=True)
 
@@ -524,100 +511,6 @@ def clean_up_q_tables(run_dirs):
 
 
 
-
-#if __name__ == "__main__":
-#
-#
-#    multiprocessing.set_start_method("spawn", force=True)
-#
-#    num_parallel_runs = 3
-#
-#
-#    base_params = {
-#        "width": 45,
-#        "height": 45,
-#        "initial_wolves": 10,
-#        "initial_sheep": 20,
-#        "learning": True,
-#        "max_steps": 200,
-#        "respawn": False,
-#        "diffusion_rate": 0.5,
-#        "pheromone_evaporation": 0.1,
-#        "testing": False,
-#        "q_table_file": "./FinalServerTest/test13/q_table_avg.json",
-#        "torus": False
-#    }
-#
-#    q_learning_params = {
-#        "actions": [0, 1, 2, 3],
-#        "alpha": 0.1,
-#        "gamma": 0.99,
-#        "epsilon": 0.5,
-#        "epsilon_decay": 0.9985,
-#        "min_epsilon": 0.01
-#    }
-#
-#    all_results = []
-#    q_tables_paths = []
-#    partial_results_file = "partial_results.csv"
-#    save = True
-#
-#
-#    if os.path.exists(partial_results_file):
-#        os.remove(partial_results_file)
-#
-#
-#    try:
-#        with ProcessPoolExecutor(max_workers=num_parallel_runs) as executor:
-#            futures = [executor.submit(run_single_simulation, i, base_params, q_learning_params)
-#                       for i in range(num_parallel_runs)]
-#
-#            for i, future in enumerate(as_completed(futures)):
-#                try:
-#                    sim_result, q_table_file = future.result()
-#
-#                    for r in sim_result:
-#                        r["run_id"] = i
-#                    all_results.extend(sim_result)
-#
-#                    pd.DataFrame(sim_result).to_csv(partial_results_file, mode='a', index=False,
-#                                                    header=not os.path.exists(partial_results_file))
-#
-#                    if base_params['learning'] and not base_params['testing']:
-#                        q_tables_paths.append(q_table_file)
-#
-#                except Exception as e:
-#                    import traceback
-#                    print(f"⚠️ Errore nella simulazione {i}: {traceback.format_exc()}")
-#
-#    except KeyboardInterrupt:
-#        print("⛔ Interrotto dall'utente.")
-#
-#
-#
-#    if all_results:
-#        if base_params['learning'] and not base_params['testing']:
-#            output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
-#            merge_q_tables(q_tables_paths, abs_output_dir, n_wolves=base_params["initial_wolves"])
-#            clean_up_q_tables(q_tables_paths)
-#
-#        df = pd.DataFrame(all_results)
-#
-#        df = df.dropna(subset=['Sheep_eaten'])
-#        output_dir, abs_output_dir = get_next_test_folder(base_params['testing'], base_params['learning'])
-#
-#        if save:
-#            save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
-#
-#
-#
-#        window_size = 1
-#        plot_results(df, output_dir=output_dir, window_size=window_size)
-#        plot_reward(df, output_dir=output_dir, window_size=window_size)
-#        plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)
-#        plot_simulation_steps(df, output_dir=output_dir, window_size=window_size)
-#        plot_all_actions_in_one(df, output_dir=output_dir, window_size=window_size)
-#        plot_capture_median(df, output_dir=output_dir, window_size=window_size)
 if __name__ == "__main__":
 
     multiprocessing.set_start_method("spawn", force=True)
@@ -640,7 +533,7 @@ if __name__ == "__main__":
     }
 
     q_learning_params = {
-        "actions": [0, 1, 3],
+        "actions": [0, 1, 2, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
