@@ -261,8 +261,8 @@ class Animal(Agent):
                 max_wolf_ph = max(ph.wolf_concentration for ph in pheromones)
 
                 #metto il treshold molto alto per fare il primo esperimento senza azione avanzata
-                self.treshold_sheep = 100
-                self.treshold_wolf = 100
+                #self.treshold_sheep = 100
+                #self.treshold_wolf = 100
 
                 if max_sheep_ph >= self.treshold_sheep and max_wolf_ph >= self.treshold_wolf:
                     #print("Considero entrambi i feromoni allo step: ", self.model.steps)
@@ -389,9 +389,9 @@ class Wolf(Animal):
         cell_wolves = [agent for agent in self.model.grid.get_cell_list_contents(self.pos)
                        if isinstance(agent, Wolf) and agent != self]
 #
-        #if cell_wolves:
-        #    #print("Penalità collisione")
-        #    base_reward -= 5
+        if cell_wolves:
+            #print("Penalità collisione")
+            base_reward -= 5
 
         if self.eaten:
             #print("C'è stata una cattura allo step:", self.model.steps)
@@ -402,13 +402,13 @@ class Wolf(Animal):
                 self.pos, moore=True, include_center=False, radius=5
             )
             #####primo esperimento
-            #nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
+            nearby_wolves = [agent for agent in neighbors if isinstance(agent, Wolf)]
 ###
-            #for wolf in nearby_wolves:
-            #    distance = self.model.get_distance(self.pos, wolf.pos)
-            #    distance_reward = 10 * (1 - distance / 10)
-            #    #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
-            #    wolf.shared_reward += distance_reward
+            for wolf in nearby_wolves:
+                distance = self.model.get_distance(self.pos, wolf.pos)
+                distance_reward = 10 * (1 - distance / 10)
+                #print("C'è stata una cattura, il lupo %d ha preso reward: %f", wolf.unique_id, distance_reward)
+                wolf.shared_reward += distance_reward
 
 
             self.last_sheep_distance = self.model.get_closest_sheep_distance(self.pos)
@@ -496,11 +496,11 @@ class Wolf(Animal):
 
             reward = self.calculate_reward()
             #####primo esperimento
-            #if self.shared_reward > 0:
-            #    #print("Shared reward positiva, reward prima: ", reward)
-            #    reward += self.shared_reward
-            #    #print("reward dopo: ", reward)
-            #    self.shared_reward = 0
+            if self.shared_reward > 0:
+                #print("Shared reward positiva, reward prima: ", reward)
+                reward += self.shared_reward
+                #print("reward dopo: ", reward)
+                self.shared_reward = 0
 
             if self.eaten:
 
@@ -562,7 +562,7 @@ class Sheep(Animal):
     def __init__(self, model):
         super().__init__(model)
         self.alive = True
-        self.movement_speed = 1 ####primo esperimento, mettere a 2  dopo
+        self.movement_speed = 2 ####primo esperimento, mettere a 2  dopo
 
     def get_best_escape_direction(self, possible_steps):
 
@@ -629,23 +629,23 @@ class Sheep(Animal):
                 self.pos, moore=True, include_center=False, radius=self.movement_speed
             )
             #####primo esperimento
-            #best_steps = self.get_best_escape_direction(possible_steps)
+            best_steps = self.get_best_escape_direction(possible_steps)
             ##rimuovi questo sotto dopo
-            pheromones = [
-                Pheromone(
-                    wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
-                    sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
-                ) for (x, y) in possible_steps
-            ] if not self.model.render_pheromone else [
-                next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
-                      isinstance(obj, Pheromones)),
-                     Pheromone())
-                for step in possible_steps
-            ]
-###
-            pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
-            min_pheromone = min(pheromone_concentrations)
-            best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
+            #pheromones = [
+            #    Pheromone(
+            #        wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
+            #        sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
+            #    ) for (x, y) in possible_steps
+            #] if not self.model.render_pheromone else [
+            #    next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
+            #          isinstance(obj, Pheromones)),
+            #         Pheromone())
+            #    for step in possible_steps
+            #]
+####
+            #pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+            #min_pheromone = min(pheromone_concentrations)
+            #best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
 
 
             if best_steps:

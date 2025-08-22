@@ -516,11 +516,11 @@ if __name__ == "__main__":
     multiprocessing.set_start_method("spawn", force=True)
 
     num_parallel_runs = 3
-
+    #per primo esperimento num_wolves 5, torus true e controllare le azioni
     base_params = {
         "width": 45,
         "height": 45,
-        "initial_wolves": 5,
+        "initial_wolves": 10,
         "initial_sheep": 20,
         "learning": True,
         "max_steps": 200,
@@ -529,11 +529,11 @@ if __name__ == "__main__":
         "pheromone_evaporation": 0.1,
         "testing": False,
         "q_table_file": None,
-        "torus": True
+        "torus": False
     }
 
     q_learning_params = {
-        "actions": [0, 1, 3],
+        "actions": [0, 1, 2, 3, 4, 5],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
