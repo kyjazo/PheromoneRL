@@ -184,13 +184,6 @@ class WolfSheepModel(Model):
     #        temp_q_learning.save_q_table(self.q_table_file)
     #        #print("Saved: ", self.q_table_file)
     def save_q_tables(self):
-        """
-        Salva una q-table separata per ogni Wolf nella cartella
-        <dirname(self.q_table_file)>/q_tables/ come:
-            q_table_0.json, q_table_1.json, ...
-        L'ordine (indice) corrisponde all'ordine dei Wolf in self.agents
-        (ordine di creazione/posizionamento).
-        """
         if not self.learning or not hasattr(self, 'q_table_file') or not self.q_table_file:
             return
 
@@ -235,17 +228,6 @@ class WolfSheepModel(Model):
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
 
-                    #nx = nx % self.grid.width
-                    #ny = ny % self.grid.height
-#
-                    #wolf_diffused = current_wolf * fraction_per_direction
-                    #sheep_diffused = current_sheep * fraction_per_direction
-#
-                    #new_wolf[nx, ny] += wolf_diffused
-                    #new_sheep[nx, ny] += sheep_diffused
-                    #total_diffused_wolf += wolf_diffused
-                    #total_diffused_sheep += sheep_diffused
-                    # Controlla se nx, ny sono dentro i limiti della griglia
                     if 0 <= nx < self.grid.width and 0 <= ny < self.grid.height:
                         wolf_diffused = current_wolf * fraction_per_direction
                         sheep_diffused = current_sheep * fraction_per_direction
@@ -264,48 +246,7 @@ class WolfSheepModel(Model):
     def decay_epsilon(self):
         if self.learning:
             self.q_learning.epsilon = max(self.q_learning.min_epsilon, self.q_learning.epsilon * self.q_learning.epsilon_decay)
-    #def step(self):
-#
-    #    #print("Step: ", self.steps)
-    #    #print(self.count_agents(Sheep))
-#
-    #    for agent in list(self.agents):  # fai una copia perché potresti rimuoverli durante l'iterazione
-    #        if isinstance(agent, Trail):
-    #            agent.step()
-#
-    #    if self.count_agents(Sheep) == 0 or (self.get_steps() >= self.max_steps):
-    #        if not self.testing:
-    #            self.decay_epsilon()
-    #        #print("finita simulazione, chiamo save table")
-    #        self.save_q_tables()
-    #        self.datacollector.collect(self)
-    #        self.running = False
-    #    else:
-#
-    #        wolf_agents = []
-    #        for agent in self.agents:
-    #            if isinstance(agent, Sheep):
-    #                agent.step()
-    #            elif isinstance(agent, Wolf):
-    #                wolf_agents.append(agent)
-#
-    #        for agent in wolf_agents:
-    #            agent.step()
-#
-    #        if self.render_pheromone:
-    #            for agent in self.agents:
-    #                if isinstance(agent, Pheromones):
-    #                    agent.step()
-    #            for agent in self.agents:
-    #                if isinstance(agent, Pheromones):
-    #                    agent.apply_diffusion()
-#
-    #        else:
-    #            self.evaporate_pheromones()
-    #            self.diffuse_pheromones()
-#
-    #        #self.agents.shuffle_do("step")
-    #        #self.datacollector.collect(self)
+
     def step(self):
 
 

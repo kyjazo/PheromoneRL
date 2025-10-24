@@ -26,24 +26,7 @@ def check_memory():
 
 
 
-#def save_q_table_to_results(q_table_file, output_dir):
-#    """
-#    Copia la cartella 'q_tables' (contenente q_table_0.json, q_table_1.json, ...) nella cartella di output.
-#    Non viene salvata la q_table media.
-#    """
-#    if not q_table_file:
-#        print("ℹ️ Nessun q_table_file specificato; nessuna q_table da copiare.")
-#        return
-#
-#    q_tables_dir = os.path.join(os.path.dirname(os.path.abspath(q_table_file)), "q_tables")
-#    if os.path.exists(q_tables_dir) and os.path.isdir(q_tables_dir):
-#        dest_q_tables = os.path.join(output_dir, "q_tables")
-#        if os.path.exists(dest_q_tables):
-#            shutil.rmtree(dest_q_tables)
-#        shutil.copytree(q_tables_dir, dest_q_tables)
-#        print(f"📁 Cartella q_tables copiata in: {dest_q_tables}")
-#    else:
-#        print("ℹ️ Nessuna cartella 'q_tables' trovata da copiare.")
+
 def save_q_table_to_results(run_dirs, output_dir, n_wolves):
     """
     Combina le q-tables di più run concorrenti e salva solo la media.
@@ -326,46 +309,6 @@ def plot_all_actions_in_one(df, output_dir="./results", window_size=100):
     plt.show()
 
 
-#def plot_capture_median(df, output_dir="./results", window_size=100):
-#    if "Capture_Intervals" not in df.columns:
-#        print("⚠️ Colonna 'Capture_Intervals' mancante.")
-#        return
-#
-#    window_size = window_size
-#
-#    df_valid = df[df["Capture_Intervals"].apply(lambda x: isinstance(x, list) and len(x) > 0)]
-#    exploded = df_valid.explode("Capture_Intervals")
-#    exploded["Capture_Intervals"] = pd.to_numeric(exploded["Capture_Intervals"], errors="coerce")
-#
-#    if 'run_id' in df.columns:
-#        median_data = exploded.groupby(["run_id", "iteration"])["Capture_Intervals"].median().reset_index()
-#        stats = median_data.groupby("iteration")["Capture_Intervals"].agg(['mean', 'std']).reset_index()
-#    else:
-#        stats = exploded.groupby("iteration")["Capture_Intervals"].agg(['median']).reset_index()
-#        stats.columns = ["iteration", "mean"]
-#        stats["std"] = 0
-#
-#    stats['mean_rolling'] = stats['mean'].rolling(window=window_size).mean()
-#    stats['std_rolling'] = stats['std'].rolling(window=window_size).mean()
-#
-#    plt.figure(figsize=(10, 5))
-#    plt.plot(stats["iteration"], stats["mean_rolling"],
-#             color='purple', linewidth=2.5)
-#    plt.fill_between(stats["iteration"],
-#                     stats["mean_rolling"] - stats["std_rolling"],
-#                     stats["mean_rolling"] + stats["std_rolling"],
-#                     color='purple', alpha=0.2)
-#    plt.title(f"Median Steps Between Captures (rolling mean {window_size})", fontsize=16)
-#    plt.xlabel("Episode", fontsize=14)
-#    plt.ylabel("Steps between captures", fontsize=14)
-#    plt.grid(True, linestyle='--', alpha=0.6)
-#    plt.tight_layout()
-#
-#    if save:
-#        filepath = os.path.join(output_dir, f"capture_median_rolling{window_size}.png")
-#        plt.savefig(filepath, dpi=300, bbox_inches='tight')
-#        print(f"📈 Grafico mediana catture salvato in: {filepath}")
-#    plt.show()
 def plot_capture_median(df, output_dir="./results", window_size=100):
     if "Capture_Intervals" not in df.columns:
         print("⚠️ Colonna 'Capture_Intervals' mancante.")
@@ -404,7 +347,7 @@ def plot_capture_median(df, output_dir="./results", window_size=100):
         print(f"📈 Grafico mediana catture salvato in: {filepath}")
     plt.show()
 
-def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=5000):
+def run_single_simulation(run_id, base_params, q_learning_params, num_episodes=100):
 
     try:
         params = base_params.copy()
@@ -501,9 +444,7 @@ def merge_q_tables(run_dirs, output_dir, n_wolves):
             json.dump(avg_q, f)
         print(f"[DEBUG] Q-table media per Wolf {idx} salvata in {out_file}")
 def clean_up_q_tables(run_dirs):
-    """
-    Rimuove le cartelle temporanee di ogni run (es. ./tmp_runs/run_X).
-    """
+
     for run_dir in run_dirs:
         if os.path.exists(run_dir):
             shutil.rmtree(run_dir)
@@ -515,25 +456,25 @@ if __name__ == "__main__":
 
     multiprocessing.set_start_method("spawn", force=True)
 
-    num_parallel_runs = 3
+    num_parallel_runs = 5
     #per primo esperimento num_wolves 5, torus true e controllare le azioni
     base_params = {
         "width": 45,
         "height": 45,
-        "initial_wolves": 10,
+        "initial_wolves": 5,
         "initial_sheep": 20,
-        "learning": True,
+        "learning": False,
         "max_steps": 200,
         "respawn": False,
         "diffusion_rate": 0.5,
         "pheromone_evaporation": 0.1,
-        "testing": False,
-        "q_table_file": None,
-        "torus": False
+        "testing": True,
+        #"q_table_file": None,
+        "torus": True
     }
 
     q_learning_params = {
-        "actions": [0, 1, 2, 3, 4, 5],
+        "actions": [0, 1, 3],
         "alpha": 0.1,
         "gamma": 0.99,
         "epsilon": 0.5,
@@ -586,7 +527,7 @@ if __name__ == "__main__":
             save_simulation_metadata(base_params, q_learning_params, output_dir=output_dir)
 
         # plotting
-        window_size = 100
+        window_size = 10
         plot_results(df, output_dir=output_dir, window_size=window_size)
         plot_reward(df, output_dir=output_dir, window_size=window_size)
         plot_sheep_eaten(df, output_dir=output_dir, window_size=window_size)

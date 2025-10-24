@@ -215,7 +215,7 @@ class Animal(Agent):
         wolf_vec = np.array(max_wolf_pos) - current_pos
         #print("wolf_vec", wolf_vec)
 
-        # Calcolo della direzione combinata: avvicinati alle pecore, allontanati dai lupi
+        # calcolo della direzione combinata: avvicinati alle pecore, allontanati dai lupi
         combined_vec = phi * sheep_vec - (1 - phi) * wolf_vec
         #print("combined_vec", combined_vec)
         if np.linalg.norm(combined_vec) == 0:
@@ -223,7 +223,7 @@ class Animal(Agent):
 
         combined_vec_normalized = combined_vec / np.linalg.norm(combined_vec)
         #print("combined_vec_normalized", combined_vec_normalized)
-        # Scegli la cella più allineata al vettore risultante
+
         best_step = None
         best_alignment = -float('inf')
 
@@ -562,7 +562,7 @@ class Sheep(Animal):
     def __init__(self, model):
         super().__init__(model)
         self.alive = True
-        self.movement_speed = 2 ####primo esperimento, mettere a 2  dopo
+        self.movement_speed = 1 ####primo esperimento, mettere a 2  dopo
 
     def get_best_escape_direction(self, possible_steps):
 
@@ -629,23 +629,23 @@ class Sheep(Animal):
                 self.pos, moore=True, include_center=False, radius=self.movement_speed
             )
             #####primo esperimento
-            best_steps = self.get_best_escape_direction(possible_steps)
-            ##rimuovi questo sotto dopo
-            #pheromones = [
-            #    Pheromone(
-            #        wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
-            #        sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
-            #    ) for (x, y) in possible_steps
-            #] if not self.model.render_pheromone else [
-            #    next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
-            #          isinstance(obj, Pheromones)),
-            #         Pheromone())
-            #    for step in possible_steps
-            #]
-####
-            #pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
-            #min_pheromone = min(pheromone_concentrations)
-            #best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
+            #best_steps = self.get_best_escape_direction(possible_steps)
+            #rimuovi questo sotto dopo
+            pheromones = [
+                Pheromone(
+                    wolf_concentration=self.model.wolf_pheromone_layer.data[x, y],
+                    sheep_concentration=self.model.sheep_pheromone_layer.data[x, y]
+                ) for (x, y) in possible_steps
+            ] if not self.model.render_pheromone else [
+                next((obj.pheromone for obj in self.model.grid.get_cell_list_contents(step) if
+                      isinstance(obj, Pheromones)),
+                     Pheromone())
+                for step in possible_steps
+            ]
+#####
+            pheromone_concentrations = [ph.wolf_concentration for ph in pheromones]
+            min_pheromone = min(pheromone_concentrations)
+            best_steps = [step for step, conc in zip(possible_steps, pheromone_concentrations) if conc == min_pheromone]
 
 
             if best_steps:

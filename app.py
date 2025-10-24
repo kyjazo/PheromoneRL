@@ -87,7 +87,7 @@ def agent_portrayal(agent):
 #        "min_epsilon": 0.01
 #    }
 q_learning_params = {
-    "actions": [0, 1, 3],
+    "actions": [0, 1, 2, 3, 4, 5],
     "alpha": 0.1,
     "gamma": 0.99,
     "epsilon": 0.5,
@@ -96,7 +96,7 @@ q_learning_params = {
 }
 
 
-q = QLearning(**q_learning_params, q_table_file="q_table_avg.json")
+q = QLearning(**q_learning_params)
 
 model_params = {
     "render_pheromone": {
@@ -130,12 +130,12 @@ model_params = {
         "label": "Torus?",
     },
 
-    "height": Slider("Height", 20, 5, 100, 5, dtype=int),
-    "width": Slider("Width", 20, 5, 100, 5, dtype=int),
-    "initial_sheep": Slider("Initial Sheep Population", 1, 1, 100, 1, dtype=int),
-    "initial_wolves": Slider("Initial Wolf Population", 3, 1, 20, 1, dtype=int),
+    "height": Slider("Height", 45, 5, 100, 5, dtype=int),
+    "width": Slider("Width", 45, 5, 100, 5, dtype=int),
+    "initial_sheep": Slider("Initial Sheep Population", 20, 1, 100, 1, dtype=int),
+    "initial_wolves": Slider("Initial Wolf Population", 10, 1, 20, 1, dtype=int),
     "pheromone_evaporation": Slider("Pheromone Evaporation", 0.1, 0, 1, 0.01, dtype=float),
-    "pheromone_added": Slider("Pheromone Released", 10, 0, 20, 1, dtype=float),
+    "pheromone_added": Slider("Pheromone Released", 1, 0, 20, 1, dtype=float),
     "diffusion_rate": Slider("Diffusion Rate", 0.1, 0.01, 1, 0.1, dtype=float),
 
     "q_learning": q
